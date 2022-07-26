@@ -2,9 +2,10 @@
 name = "ani_cli_rs"
 version = "0.1.0"
 edition = "2021"
-license = "MIT License"
+license = "MIT"
 license-file = "LICENSE"
 readme = "README.md"
+description = "A tool for searching and streaming anime from the CLI"
 categories = ["command-line-utilities"]
 
 [dependencies]
