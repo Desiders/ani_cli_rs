@@ -15,7 +15,6 @@ pub mod sources {
         }
     }
     pub mod common {
-        pub mod errors {}
         pub mod methods;
     }
 }

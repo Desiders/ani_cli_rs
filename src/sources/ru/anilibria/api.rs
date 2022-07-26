@@ -1,6 +1,5 @@
-use reqwest::Result as ReqwestResult;
-
 use super::source::Anilibria;
+use reqwest::Result as ReqwestResult;
 
 pub trait Api {
     fn search(&self, query: &str) -> ReqwestResult<String>;

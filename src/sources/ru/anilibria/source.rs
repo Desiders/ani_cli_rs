@@ -25,7 +25,7 @@ impl Anilibria {
             client,
         }
     }
-    pub fn default<'a>() -> Anilibria {
+    pub fn default() -> Anilibria {
         Anilibria::new(
             "Anilibria".to_string(),
             "ru".to_string(),
@@ -51,7 +51,7 @@ impl Anilibria {
         &self.api_url
     }
     pub fn get_info(&self) -> String {
-        format!("{} ({})", self.name, self.language,)
+        format!("{} ({})", self.name, self.language)
     }
 }
 
