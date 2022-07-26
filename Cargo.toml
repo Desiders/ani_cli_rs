@@ -1,0 +1,19 @@
+[package]
+name = "ani_cli_rs"
+version = "0.1.0"
+edition = "2021"
+license = "MIT License"
+license-file = "LICENSE"
+readme = "README.md"
+categories = ["command-line-utilities"]
+
+[dependencies]
+reqwest = { version = "0.11", features = ["blocking"] }
+serde_json = "1.0"
+subprocess = "0.2.9"
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
