@@ -1,9 +1,9 @@
 use crate::{
-    prompt::{read_line_or_none, read_pos_num_or_none},
+    prompt::{process_select_variant, read_line_or_none, read_pos_num_or_none},
     sources::common::methods::Methods,
 };
 use std::{collections::HashMap, fmt::Display, thread::sleep, time::Duration};
-use subprocess::{Popen, PopenConfig};
+use subprocess::{Popen, PopenConfig, Redirection};
 
 enum States {
     Search,
@@ -22,7 +22,7 @@ enum SourceIterState {
     Break,
 }
 
-pub fn run<T>(sources: Vec<&T>)
+pub fn run<T>(sources: &[&T])
 where
     T: Methods + Display,
 {
@@ -49,7 +49,7 @@ where
 
                 let sources_len = sources.len();
 
-                for source in &sources {
+                for source in sources {
                     println!("{}:", source);
 
                     match source.search(&anime_name) {
@@ -86,7 +86,7 @@ where
                         }
                     }
                 }
-                if anime_common.len() == 0 {
+                if anime_common.is_empty() {
                     println!("<-> Anime not found by this name!");
                     // current_state = States::Search;
                     // this state is base state
@@ -111,7 +111,6 @@ where
             States::Series => {
                 let source = current_source.unwrap();
                 let anime = current_anime.as_ref().unwrap();
-
                 let series = match source.series(anime) {
                     Ok(series) => series,
                     Err(err) => {
@@ -120,7 +119,14 @@ where
                         continue;
                     }
                 };
-                current_serie = match source.select_serie(&series) {
+
+                let (text, variants) =
+                    source.series_info_and_variants(series, current_serie.as_ref());
+                current_serie = match process_select_variant(
+                    "Enter series, some abbreviation, or any other key to come back: ",
+                    &text,
+                    variants,
+                ) {
                     Some(serie) => {
                         current_state = States::Hls; // set next state
                         Some(serie)
@@ -144,7 +150,13 @@ where
                         continue;
                     }
                 };
-                current_hls = match source.select_hls(&hls_list) {
+
+                let (text, variants) = source.hls_list_info_and_variants(hls_list);
+                current_hls = match process_select_variant(
+                    "Enter hls or any other key to come back: ",
+                    &text,
+                    variants,
+                ) {
                     Some(hls) => {
                         current_state = States::Play; // set next state
                         Some(hls)
@@ -163,8 +175,6 @@ where
 
                 let url = source.get_url(anime, serie, hls);
 
-                current_state = States::Hls; // set previous state
-
                 for num in 1..=10 {
                     match Popen::create(
                         &[
@@ -174,15 +184,29 @@ where
                             "--msg-level=all=fatal",
                             "--title=Anime",
                         ],
-                        PopenConfig::default(),
+                        PopenConfig {
+                            stdin: Redirection::None,
+                            stdout: Redirection::None,
+                            stderr: Redirection::None,
+                            detached: true,
+                            ..Default::default()
+                        },
                     ) {
                         Ok(_) => {
-                            println!("Successfully started process. You can close terminal!");
+                            current_state = States::Series; // set series state
+                            current_hls = None; // reset HLS state, because no need it
+                            println!("The process successfully launched! Wait opening...");
                             break;
                         }
                         Err(err) => {
                             if num == 10 {
-                                println!("<-> Failed to open url: {}", err);
+                                println!(
+                                    "<-> Couldn't open the MPV player or problems with the anime source! Error: {}.\n
+                                    Download player and set it in path if you didn't do that before! 
+                                    Player: https://mpv.io/installation/",
+                                    err,
+                                );
+                                current_state = States::Hls; // set previous state
                                 break;
                             }
 
@@ -191,15 +215,17 @@ where
                         }
                     }
                 }
+                println!();
             }
         }
     }
 }
 
+#[must_use]
 fn choose_anime_iter_state() -> AnimeIterState {
-    if let Some(line) = read_line_or_none("Continue parse this source (y/other): ", false) {
+    if let Some(line) = read_line_or_none("Continue parsing the source? (y/other): ", false) {
         let lower_line = line.to_lowercase();
-        let accept_values = ["y", "у", "yes"]; // en "y" and ru "у"
+        let accept_values = ["y", "у"]; // en "y" and ru "у"
         if accept_values.contains(&lower_line.as_str()) {
             AnimeIterState::Continue
         } else {
@@ -210,12 +236,13 @@ fn choose_anime_iter_state() -> AnimeIterState {
     }
 }
 
+#[must_use]
 fn choose_source_iter_state() -> SourceIterState {
-    if let Some(line) = read_line_or_none(
-        "Continue searching anime in other sources (y/other): ",
-        false,
-    ) {
-        if line.to_lowercase() == "y" {
+    if let Some(line) = read_line_or_none("Continue searching in another source? (y/other):", false)
+    {
+        let lower_line = line.to_lowercase();
+        let accept_values = ["y", "у"]; // en "y" and ru "у"
+        if accept_values.contains(&lower_line.as_str()) {
             SourceIterState::Next
         } else {
             SourceIterState::Break

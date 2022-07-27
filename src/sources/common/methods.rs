@@ -1,5 +1,5 @@
 use reqwest::Result as ReqwestResult;
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 pub trait Methods {
     type Anime: Display + Clone;
@@ -12,8 +12,15 @@ pub trait Methods {
     fn series(&self, schema: &Self::Anime) -> ReqwestResult<Self::Series>;
     fn hls(&self, schema: &Self::Serie) -> ReqwestResult<Self::HlsList>;
 
-    fn select_serie(&self, schema: &Self::Series) -> Option<Self::Serie>;
-    fn select_hls(&self, schema: &Self::HlsList) -> Option<Self::Hls>;
+    fn series_info_and_variants(
+        &self,
+        schema: Self::Series,
+        current_serie: Option<&Self::Serie>,
+    ) -> (String, HashMap<String, Self::Serie>);
+    fn hls_list_info_and_variants(
+        &self,
+        schema: Self::HlsList,
+    ) -> (String, HashMap<String, Self::Hls>);
 
     fn get_url(&self, anime: &Self::Anime, serie: &Self::Serie, hls: &Self::Hls) -> String;
 }

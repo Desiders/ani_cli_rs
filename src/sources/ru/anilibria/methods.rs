@@ -4,7 +4,7 @@ use super::{
     schemas::{anime::Anime, player::Player, playlist::SerieInfo},
     source::Anilibria,
 };
-use crate::{prompt::process_select, sources::common::methods::Methods};
+use crate::sources::common::methods::Methods;
 use reqwest::Result as ReqwestResult;
 use std::collections::HashMap;
 
@@ -24,77 +24,88 @@ impl Methods for Anilibria {
     fn hls(&self, schema: &Self::Serie) -> ReqwestResult<Self::HlsList> {
         Ok(schema.clone())
     }
-    fn select_serie(&self, schema: &Self::Series) -> Option<Self::Serie> {
-        let playlist = &schema.playlist;
-        let mut variants: HashMap<&str, &SerieInfo> = HashMap::new();
-        for (serie, serie_info) in playlist {
-            variants.insert(serie, serie_info);
+    fn series_info_and_variants(
+        &self,
+        schema: Self::Series,
+        current_serie: Option<&Self::Serie>,
+    ) -> (String, HashMap<String, Self::Serie>) {
+        let mut variants = HashMap::new();
+        let playlist = schema.playlist;
+        for (serie, serie_info) in &playlist {
+            variants.insert(serie.clone(), serie_info.clone());
         }
-        let series = &schema.series;
-        variants.insert("first", &playlist[&series.first.to_string()]);
-        variants.insert("last", &playlist[&series.last.to_string()]);
-
-        process_select(
-            "Enter series or any other key to come back: ",
+        let series = schema.series;
+        let first_serie_string = series.first.to_string();
+        let last_serie_string = series.last.to_string();
+        variants.insert("first".to_string(), playlist[&first_serie_string].clone());
+        variants.insert("last".to_string(), playlist[&last_serie_string].clone());
+        let mut text = String::new();
+        text.push_str(
             format!(
                 "Info: {}\nFirst episode: {}\nLast episode: {}",
                 series.string, series.first, series.last,
             )
             .as_str(),
-            variants,
-        )
-        .map(|s| s.clone())
-    }
-    fn select_hls(&self, schema: &Self::HlsList) -> Option<Self::Hls> {
-        let get_str_by_num = |i: u8| {
-            if i == 1 {
-                "1"
-            } else if i == 2 {
-                "2"
-            } else {
-                "3"
+        );
+        if let Some(serie_info) = current_serie {
+            let serie_previous = serie_info.serie - 1;
+            let serie_next = serie_info.serie + 1;
+            if let Some(serie_info) = playlist.get(&serie_previous.to_string()) {
+                let previous_variants = ["p", "previous", "-"];
+                for variant in previous_variants {
+                    variants.insert(variant.to_string(), serie_info.clone());
+                }
+                text.push_str(
+                    format!(
+                        "\nPrevious episode: {} ({})",
+                        serie_previous,
+                        previous_variants.join(" | ")
+                    )
+                    .as_str(),
+                );
             }
-        };
+            if let Some(serie_info) = playlist.get(&serie_next.to_string()) {
+                let next_variants = ["n", "next", "+"];
+                for variant in next_variants {
+                    variants.insert(variant.to_string(), serie_info.clone());
+                }
+                text.push_str(
+                    format!(
+                        "\nNext episode: {} ({})",
+                        serie_next,
+                        next_variants.join(" | ")
+                    )
+                    .as_str(),
+                );
+            }
+        }
+        (text, variants)
+    }
+    fn hls_list_info_and_variants(
+        &self,
+        schema: Self::HlsList,
+    ) -> (String, HashMap<String, Self::Hls>) {
+        let mut variants = HashMap::new();
         let mut text = String::new();
         let mut variant_index: u8 = 0;
-        let mut variants: HashMap<&str, &String> = HashMap::new();
-        if let Some(fhd) = &schema.fhd {
-            variant_index += 1;
-            let str_variant_index = get_str_by_num(variant_index);
-            for variant in [str_variant_index, "fhd", "fullhd", "full hd"] {
-                variants.insert(variant, fhd);
+        for (result, string) in [
+            (schema.fhd, "full hd"),
+            (schema.hd, "hd"),
+            (schema.sd, "sd"),
+        ] {
+            if let Some(hls) = result {
+                variant_index += 1;
+                variants.insert(variant_index.to_string(), hls);
+                text.push_str(format!("\n{}. {}", variant_index, string).as_str());
             }
-            text.push_str(format!("{}. {} (full hd)\n", str_variant_index, "fhd").as_str());
         }
-        if let Some(hd) = &schema.hd {
-            variant_index += 1;
-            let str_variant_index = get_str_by_num(variant_index);
-            for variant in [str_variant_index, "hd", "mid", "middle"] {
-                variants.insert(variant, hd);
-            }
-            text.push_str(format!("{}. {}\n", str_variant_index, "hd").as_str());
-        }
-        if let Some(sd) = &schema.sd {
-            variant_index += 1;
-            let str_variant_index = get_str_by_num(variant_index);
-            for variant in [str_variant_index, "sd", "low"] {
-                variants.insert(variant, sd);
-            }
-            text.push_str(format!("{}. {} (low)\n", str_variant_index, "sd").as_str());
-        }
-        process_select(
-            "Enter hls or any other key to come back: ",
-            text.trim(),
-            variants,
-        )
-        .map(|s| s.clone())
+        (text, variants)
     }
     fn get_url(&self, _anime: &Self::Anime, _serie: &Self::Serie, hls: &Self::Hls) -> String {
-        let hls = if hls.starts_with("http") {
+        if hls.starts_with("http") {
             hls.to_string()
         } else {
             format!("https://{}", hls)
-        };
-        format!("{}", hls)
+        }
     }
 }
