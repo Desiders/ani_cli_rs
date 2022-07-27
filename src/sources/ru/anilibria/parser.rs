@@ -13,7 +13,7 @@ impl Parser for Anilibria {
         let mut anime_list = Vec::new();
         for value in serde_json::from_str::<Vec<Value>>(text).unwrap() {
             anime_list.push(Anime {
-                announce: value["announce"].as_str().map(|s| s.to_string()),
+                announce: value["announce"].as_str().map(ToString::to_string),
                 names: {
                     let names = value["names"].as_object().unwrap();
                     Names {
@@ -33,6 +33,7 @@ impl Parser for Anilibria {
                     },
                     playlist: {
                         let player = value["player"].as_object().unwrap();
+                        let host = player["host"].as_str().unwrap();
                         player["playlist"]
                             .as_object()
                             .unwrap()
@@ -40,7 +41,6 @@ impl Parser for Anilibria {
                             .map(|(k, v)| {
                                 (k.to_string(), {
                                     let hls = v["hls"].as_object().unwrap();
-                                    let host = player["host"].as_str().unwrap();
                                     SerieInfo {
                                         serie: v["serie"].as_u64().unwrap() as u16,
                                         fhd: hls["fhd"].as_str().map(|s| host.to_string() + s),

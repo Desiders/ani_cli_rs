@@ -10,6 +10,7 @@ pub struct Anilibria {
 }
 
 impl Anilibria {
+    #[must_use]
     pub fn new(
         name: String,
         language: String,
@@ -25,6 +26,7 @@ impl Anilibria {
             client,
         }
     }
+    #[must_use]
     pub fn default() -> Anilibria {
         Anilibria::new(
             "Anilibria".to_string(),
@@ -35,21 +37,27 @@ impl Anilibria {
         )
     }
 
+    #[must_use]
     pub fn name(&self) -> &String {
         &self.name
     }
+    #[must_use]
     pub fn language(&self) -> &String {
         &self.language
     }
+    #[must_use]
     pub fn client(&self) -> &Client {
         &self.client
     }
+    #[must_use]
     pub fn base_url(&self) -> &String {
         &self.base_url
     }
+    #[must_use]
     pub fn api_url(&self) -> &String {
         &self.api_url
     }
+    #[must_use]
     pub fn get_info(&self) -> String {
         format!("{} ({})", self.name, self.language)
     }
