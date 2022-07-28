@@ -19,4 +19,5 @@ pub mod sources {
     }
 }
 pub mod dialog;
+pub mod output;
 pub mod prompt;

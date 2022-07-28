@@ -96,10 +96,10 @@ impl Methods for Anilibria {
             if let Some(hls) = result {
                 variant_index += 1;
                 variants.insert(variant_index.to_string(), hls);
-                text.push_str(format!("\n{}. {}", variant_index, string).as_str());
+                text.push_str(format!("{}. {}\n", variant_index, string).as_str());
             }
         }
-        (text, variants)
+        (text.trim().to_string(), variants)
     }
     fn get_url(&self, _anime: &Self::Anime, _serie: &Self::Serie, hls: &Self::Hls) -> String {
         if hls.starts_with("http") {

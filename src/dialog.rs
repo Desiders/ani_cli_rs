@@ -1,4 +1,5 @@
 use crate::{
+    output::{failed, info},
     prompt::{process_select_variant, read_line_or_none, read_pos_num_or_none},
     sources::common::methods::Methods,
 };
@@ -38,7 +39,11 @@ where
                 let anime_name = match read_line_or_none("Anime name: ", false) {
                     Some(line) => line,
                     None => {
-                        println!("You can use Ctrl+C combination to exit program!");
+                        info(
+                            "You can use Ctrl+C combination to exit program!",
+                            true,
+                            false,
+                        );
                         continue;
                     }
                 };
@@ -57,7 +62,7 @@ where
                             let anime_list_len = anime_list.len();
 
                             if anime_list_len == 0 {
-                                println!("\t<-> No results");
+                                failed("No results", true, true);
                             }
                             for anime in anime_list {
                                 anime_index += 1;
@@ -87,9 +92,8 @@ where
                     }
                 }
                 if anime_common.is_empty() {
-                    println!("<-> Anime not found by this name!");
-                    // current_state = States::Search;
-                    // this state is base state
+                    failed("Anime not found by this name!", true, false);
+                    current_state = States::Search; // this state is base state
                     continue;
                 }
                 if let Some(mut index) =
@@ -114,7 +118,7 @@ where
                 let series = match source.series(anime) {
                     Ok(series) => series,
                     Err(err) => {
-                        println!("<-> Failed to get series: {}", err);
+                        failed(&format!("Failed to parse series: {}", err), true, false);
                         current_state = States::Search; // set previous state
                         continue;
                     }
@@ -145,7 +149,7 @@ where
                 let hls_list = match result {
                     Ok(hls_list) => hls_list,
                     Err(err) => {
-                        println!("<-> Failed to get hls: {}", err);
+                        failed(&format!("Failed to get hls: {}", err), true, false);
                         current_state = States::Series; // set previous state
                         continue;
                     }
@@ -195,16 +199,22 @@ where
                         Ok(_) => {
                             current_state = States::Series; // set series state
                             current_hls = None; // reset HLS state, because no need it
-                            println!("The process successfully launched! Wait opening...");
+                            info(
+                                "The process successfully launched! Wait opening...",
+                                true,
+                                false,
+                            );
                             break;
                         }
                         Err(err) => {
                             if num == 10 {
-                                println!(
-                                    "<-> Couldn't open the MPV player or problems with the anime source! Error: {}.\n
-                                    Download player and set it in path if you didn't do that before! 
-                                    Player: https://mpv.io/installation/",
-                                    err,
+                                failed(
+                                    &format!(
+                                        "<-> Couldn't open the MPV player or problems with the anime source! Error: {}.\n
+                                        Download player and set it in path if you didn't do that before! 
+                                        Player: https://mpv.io/installation/", err,
+                                    ),
+                                    true, false,
                                 );
                                 current_state = States::Hls; // set previous state
                                 break;
