@@ -34,6 +34,7 @@ pub fn info(msg: &str, with_end: bool, with_tab: bool) {
 }
 
 pub fn variants_info(msg: &str, with_end: bool, with_tab: bool) {
-    let decor_msg = format!("{msg}", msg = msg);
-    common(&decor_msg, with_end, with_tab);
+    // let decor_msg = format!("{msg}", msg = msg);
+    // common(&decor_msg, with_end, with_tab);
+    common(msg, with_end, with_tab);
 }
