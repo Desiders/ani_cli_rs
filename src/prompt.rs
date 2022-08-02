@@ -37,14 +37,24 @@ pub fn read_pos_num_or_none(input_msg: &str) -> Option<usize> {
 }
 
 #[must_use]
-pub fn process_select_variant<T, S: BuildHasher>(
+fn select_variant<T: Clone, S: BuildHasher>(
+    variant: &str,
+    variants: &HashMap<String, T, S>,
+) -> Option<T> {
+    variants
+        .get(variant.to_lowercase().as_str())
+        .map(|obj| obj.clone())
+}
+
+#[must_use]
+pub fn process_select_variant<T: Clone, S: BuildHasher>(
     input_msg: &str,
     text: &str,
-    mut variants: HashMap<String, T, S>, // `mut` for `.remove()` for a possible to move without Copy
+    variants: &HashMap<String, T, S>,
 ) -> Option<T> {
     variants_info(text, true, false);
-    if let Some(line) = read_line_or_none(input_msg, false) {
-        variants.remove(line.to_lowercase().as_str())
+    if let Some(variant) = read_line_or_none(input_msg, false) {
+        select_variant(&variant, variants)
     } else {
         None
     }

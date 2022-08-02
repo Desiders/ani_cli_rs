@@ -4,7 +4,7 @@ use crate::{
     sources::common::methods::Methods,
 };
 use std::{collections::HashMap, fmt::Display, thread::sleep, time::Duration};
-use subprocess::{Popen, PopenConfig, Redirection};
+use subprocess::{Popen, PopenConfig};
 
 enum States {
     Search,
@@ -182,7 +182,7 @@ fn select_serie<Source: Methods>(
     process_select_variant(
         "Enter serie or any other key to come back: ",
         &text,
-        variants,
+        &variants,
     )
 }
 
@@ -201,7 +201,11 @@ fn select_hls<Source: Methods>(
     };
 
     let (text, variants) = source.hls_list_info_and_variants(hls_list);
-    process_select_variant("Enter hls or any other key to come back: ", &text, variants)
+    process_select_variant(
+        "Enter hls or any other key to come back: ",
+        &text,
+        &variants,
+    )
 }
 
 fn play<Source: Methods>(
@@ -220,16 +224,7 @@ fn play<Source: Methods>(
     ];
 
     for num in 1..=10 {
-        match Popen::create(
-            &argv,
-            PopenConfig {
-                stdin: Redirection::None,
-                stdout: Redirection::None,
-                stderr: Redirection::None,
-                detached: true,
-                ..Default::default()
-            },
-        ) {
+        match Popen::create(&argv, PopenConfig::default()) {
             Ok(_) => {
                 info("The process launched! Wait opening...", true, false);
                 return;

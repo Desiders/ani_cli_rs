@@ -27,7 +27,7 @@ impl Methods for Anilibria {
     fn series_info_and_variants(
         &self,
         schema: Self::Series,
-        current_serie: Option<&Self::Serie>,
+        serie: Option<&Self::Serie>,
     ) -> (String, HashMap<String, Self::Serie>) {
         let mut variants = HashMap::new();
         let playlist = schema.playlist;
@@ -47,7 +47,7 @@ impl Methods for Anilibria {
             )
             .as_str(),
         );
-        if let Some(serie_info) = current_serie {
+        if let Some(serie_info) = serie {
             let serie_previous = serie_info.serie - 1;
             let serie_next = serie_info.serie + 1;
             if let Some(serie_info) = playlist.get(&serie_previous.to_string()) {
