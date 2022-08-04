@@ -41,9 +41,7 @@ fn select_variant<T: Clone, S: BuildHasher>(
     variant: &str,
     variants: &HashMap<String, T, S>,
 ) -> Option<T> {
-    variants
-        .get(variant.to_lowercase().as_str())
-        .map(|obj| obj.clone())
+    variants.get(variant.to_lowercase().as_str()).cloned()
 }
 
 #[must_use]

@@ -1,5 +1,5 @@
 use crate::{
-    output::{failed, info},
+    output::{failed, info, variants_info},
     prompt::{process_select_variant, read_line_or_none, read_pos_num_or_none},
     sources::common::methods::Methods,
 };
@@ -115,10 +115,11 @@ fn select_anime<'a, Source: Methods + Display>(
                 for anime in ani_list {
                     current_ani_index += 1;
 
-                    println!(
-                        "\t{index}. {anime}",
-                        index = current_ani_index,
-                        anime = anime
+                    variants_info(
+                        format!("{index}. {anime}", index = current_ani_index, anime = anime)
+                            .as_str(),
+                        true,
+                        true,
                     );
 
                     ani_common_list.push(anime);
@@ -153,7 +154,7 @@ fn select_anime<'a, Source: Methods + Display>(
     {
         if index == 0 {
             index = 1;
-            println!("Hehe, boy");
+            info("Hehe, boy", true, false);
         }
         if let Some(anime) = ani_common_list.get(index - 1) {
             let anime = anime.clone();
@@ -215,13 +216,8 @@ fn play<Source: Methods>(
     hls: &<Source as Methods>::Hls,
 ) {
     let url = source.get_url(anime, serie, hls);
-    let argv = [
-        "mpv",
-        &url,
-        "--fs",
-        "--msg-level=all=fatal",
-        "--title=Anime",
-    ];
+    let title = format!("--title={anime}", anime = anime);
+    let argv = ["mpv", &url, "--fs", "--msg-level=all=fatal", title.as_str()];
 
     for num in 1..=10 {
         match Popen::create(&argv, PopenConfig::default()) {
