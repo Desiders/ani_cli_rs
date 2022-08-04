@@ -1,40 +1,72 @@
-use ansi_term::Colour;
-use std::io::{stdout, Write};
-
-fn common(msg: &str, with_end: bool, with_tab: bool) {
-    if with_end {
-        if with_tab {
-            println!("\t{}", msg);
-        } else {
-            println!("{}", msg);
-        }
-    } else {
-        if with_tab {
-            print!("\t{}", msg);
-        } else {
-            print!("{}", msg);
-        }
-        stdout().flush().unwrap();
-    }
-}
+use std::io::Write;
+use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
 pub fn input(msg: &str, with_end: bool, with_tab: bool) {
-    let decor_msg = format!("{tag} {msg}", tag = Colour::Green.paint(">"), msg = msg);
-    common(&decor_msg, with_end, with_tab);
+    let bufwtr = BufferWriter::stderr(ColorChoice::Always);
+    let mut buffer = bufwtr.buffer();
+
+    if with_tab {
+        write!(&mut buffer, "\t").unwrap();
+    }
+    buffer
+        .set_color(ColorSpec::new().set_fg(Some(Color::Green)))
+        .unwrap();
+    write!(&mut buffer, ">").unwrap();
+    buffer.reset().unwrap();
+    write!(&mut buffer, " {}", msg).unwrap();
+    if with_end {
+        writeln!(&mut buffer).unwrap();
+    }
+    bufwtr.print(&buffer).unwrap();
 }
 
 pub fn failed(msg: &str, with_end: bool, with_tab: bool) {
-    let decor_msg = format!("{tag} {msg}", tag = Colour::Red.paint("<->"), msg = msg);
-    common(&decor_msg, with_end, with_tab);
+    let bufwtr = BufferWriter::stderr(ColorChoice::Always);
+    let mut buffer = bufwtr.buffer();
+
+    if with_tab {
+        write!(&mut buffer, "\t").unwrap();
+    }
+    buffer
+        .set_color(ColorSpec::new().set_fg(Some(Color::Red)))
+        .unwrap();
+    write!(&mut buffer, "<->").unwrap();
+    buffer.reset().unwrap();
+    write!(&mut buffer, " {}", msg).unwrap();
+    if with_end {
+        writeln!(&mut buffer).unwrap();
+    }
+    bufwtr.print(&buffer).unwrap();
 }
 
 pub fn info(msg: &str, with_end: bool, with_tab: bool) {
-    let decor_msg = format!("{msg}", msg = Colour::Cyan.paint(msg));
-    common(&decor_msg, with_end, with_tab);
+    let bufwtr = BufferWriter::stderr(ColorChoice::Always);
+    let mut buffer = bufwtr.buffer();
+
+    if with_tab {
+        write!(&mut buffer, "\t").unwrap();
+    }
+    buffer
+        .set_color(ColorSpec::new().set_fg(Some(Color::Cyan)))
+        .unwrap();
+    write!(&mut buffer, "{}", msg).unwrap();
+    if with_end {
+        buffer.reset().unwrap();
+        writeln!(&mut buffer).unwrap();
+    }
+    bufwtr.print(&buffer).unwrap();
 }
 
 pub fn variants_info(msg: &str, with_end: bool, with_tab: bool) {
-    // let decor_msg = format!("{msg}", msg = msg);
-    // common(&decor_msg, with_end, with_tab);
-    common(msg, with_end, with_tab);
+    let bufwtr = BufferWriter::stderr(ColorChoice::Always);
+    let mut buffer = bufwtr.buffer();
+
+    if with_tab {
+        write!(&mut buffer, "\t").unwrap();
+    }
+    write!(&mut buffer, "{}", msg).unwrap();
+    if with_end {
+        writeln!(&mut buffer).unwrap();
+    }
+    bufwtr.print(&buffer).unwrap();
 }
