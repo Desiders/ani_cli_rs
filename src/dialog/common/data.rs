@@ -43,6 +43,7 @@ impl<S> Default for Data<'_, S>
 where
     S: Source,
 {
+    #[must_use]
     fn default() -> Self {
         Self {
             language: Language::default(),

@@ -1,13 +1,15 @@
+use super::{data::Data, state::State};
+
 use crate::sources::base::Source;
 
-use super::{data::Data, state::State};
+use std::rc::Rc;
 
 pub struct StateMachine<'a, S>
 where
     S: Source,
 {
-    previous_states: Vec<State>,
-    state: State,
+    previous_states: Vec<Rc<State>>,
+    state: Rc<State>,
     data: Data<'a, S>,
 }
 
@@ -16,10 +18,13 @@ where
     S: Source,
 {
     #[must_use]
-    pub fn new(state: State, data: Data<'a, S>) -> Self {
+    pub fn new<St>(state: St, data: Data<'a, S>) -> Self
+    where
+        St: Into<Rc<State>>,
+    {
         Self {
             previous_states: Vec::new(),
-            state,
+            state: state.into(),
             data,
         }
     }
@@ -32,8 +37,8 @@ where
 
     /// Set next state and save current state as previous
     pub fn set_state(&mut self, state: State) {
-        self.previous_states.push(self.state.clone());
-        self.state = state;
+        self.previous_states.push(Rc::clone(&self.state));
+        self.state = Rc::new(state);
     }
 
     /// Go to previous state
@@ -56,10 +61,11 @@ impl<S> Default for StateMachine<'_, S>
 where
     S: Source,
 {
+    #[must_use]
     fn default() -> Self {
         Self {
             previous_states: Vec::default(),
-            state: State::default(),
+            state: Rc::new(State::default()),
             data: Data::default(),
         }
     }
