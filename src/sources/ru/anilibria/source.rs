@@ -62,6 +62,14 @@ impl Display for Anilibria<'_> {
     }
 }
 
+impl PartialEq<String> for Anilibria<'_> {
+    fn eq(&self, other: &String) -> bool {
+        let other = other.to_lowercase();
+
+        other == "anilibria" || other == "anilibria.tv" || other == "anilib"
+    }
+}
+
 impl Source for Anilibria<'_> {
     type SearchAnimeListInfo = String;
     type AnimeInfo = String;

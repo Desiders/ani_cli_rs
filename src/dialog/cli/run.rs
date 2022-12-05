@@ -30,19 +30,31 @@ where
                         // Set next state
                         state_machine.set_state(State::SelectSource);
                     }
+                    // Break dialog, because this state is first
                     ResultState::Break => return ResultState::Break,
                 }
             }
             State::SelectSource => {
-                todo!()
+                // Get user input source
+                match select_source(sources.iter().map(|source| &**source).collect()) {
+                    ResultState::Success(source) => {
+                        // Set input source as current source
+                        state_machine.data().set_source(source);
+                        // Set next state
+                        state_machine.set_state(State::SelectAnime);
+                    }
+                    // Go to previous state
+                    ResultState::Break => state_machine.set_previous_state(),
+                }
             }
+            State::SelectAnime => todo!(),
         }
     }
 }
 
 /// Finish CLI dialog
 pub fn finish() {
-    output::info_msg("Bye!");
+    output::info_msg("\nBye, peach!\n");
 }
 
 /// Select a language
@@ -122,6 +134,71 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
                     Ok(lang) => ResultState::Success(lang),
                     Err(err) => {
                         output::warning_msg(&format!("\n{}", err));
+                        continue;
+                    }
+                }
+            }
+            None => ResultState::Break,
+        };
+    }
+}
+
+/// Select a source
+/// # Arguments
+/// List of available sources by language
+#[must_use]
+fn select_source<'a, S>(sources: Vec<&'a S>) -> ResultState<&'a S>
+where
+    S: Source,
+{
+    for (index, source) in sources.iter().enumerate() {
+        output::variant_msg(&format!("\t{}. {}\n", index + 1, source));
+    }
+
+    loop {
+        return match prompt::read_line_or_none("\nSource: ", None) {
+            Some(source_name_or_seq_num) => {
+                // Check if input is sequence number
+                match source_name_or_seq_num.parse::<usize>() {
+                    // Check if sequence number is valid
+                    Ok(seq_num) => {
+                        // Check if sequence number is out of range and return first or last source
+                        if seq_num <= 0 {
+                            break ResultState::Success(sources[0]);
+                        } else if seq_num > sources.len() {
+                            break ResultState::Success(sources[sources.len() - 1]);
+                        // Return source by sequence number if it's valid
+                        } else {
+                            if let Some(source) = seq_num
+                                .checked_sub(1)
+                                .and_then(|seq_num| sources.get(seq_num))
+                            {
+                                break ResultState::Success(*source);
+                            }
+                        }
+                    }
+                    Err(err) => match err.kind() {
+                        IntErrorKind::PosOverflow => {
+                            output::warning_msg(&format!(
+                                "\nSequence number must be less than {}",
+                                usize::MAX
+                            ));
+                            continue;
+                        }
+                        IntErrorKind::NegOverflow => {
+                            output::warning_msg("\nSequence number must be greater than 0");
+                            continue;
+                        }
+                        IntErrorKind::Empty | IntErrorKind::Zero => unreachable!(),
+                        _ => {}
+                    },
+                }
+
+                let source_name = source_name_or_seq_num;
+                match sources.iter().find(|source| (**source).eq(&source_name)) {
+                    Some(source) => ResultState::Success(*source),
+                    None => {
+                        output::warning_msg(&format!("\nSource \"{}\" not found", source_name));
                         continue;
                     }
                 }
