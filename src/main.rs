@@ -1,9 +1,17 @@
-use ani_cli_rs::{dialog, sources::ru::anilibria::source::Anilibria};
+mod dialog;
+mod enums;
+mod errors;
+mod sources;
+
+use enums::language::Language;
 
 fn main() {
-    let anilibria = Anilibria::default();
+    let sources = [&mut sources::ru::anilibria::Anilibria::default()];
 
-    let sources = [&anilibria];
-
-    dialog::run(&sources);
+    match dialog::cli::run(&sources) {
+        dialog::ResultState::Success(_) => unreachable!(),
+        dialog::ResultState::Break => {
+            dialog::cli::finish();
+        }
+    }
 }

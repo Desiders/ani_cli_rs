@@ -1,18 +1,18 @@
 use super::source::Anilibria;
-use reqwest::Result as ReqwestResult;
+
+use reqwest;
 
 pub trait Api {
-    fn search(&self, query: &str) -> ReqwestResult<String>;
+    fn search_anime(&self, query: &str) -> Result<String, reqwest::Error>;
 }
 
-impl Api for Anilibria {
-    fn search(&self, query: &str) -> ReqwestResult<String> {
+impl Api for Anilibria<'_> {
+    fn search_anime(&self, query: &str) -> Result<String, reqwest::Error> {
+        let url = format!("{}/searchTitles", self.api_url());
+
         self.client()
-            .get(format!(
-                "{}/searchTitles?search={}&limit=30",
-                self.api_url(),
-                query
-            ))
+            .get(&url)
+            .query(&[("search", query), ("limit", "30")])
             .send()?
             .text()
     }

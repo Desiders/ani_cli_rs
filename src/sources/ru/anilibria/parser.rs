@@ -1,21 +1,23 @@
-use super::schemas::{
-    anime::Anime, names::Names, player::Player, playlist::SerieInfo, series::Series,
+use super::{
+    schemas::{Anime, Names, Player, SerieInfo, Series},
+    source::Anilibria,
 };
-use super::source::Anilibria;
-use serde_json::Value;
+
+use serde_json;
 
 pub trait Parser {
-    fn search(&self, text: &str) -> Vec<Anime>;
+    fn search_anime(&self, query: &str) -> Result<Vec<Anime>, serde_json::Error>;
 }
 
-impl Parser for Anilibria {
-    fn search(&self, text: &str) -> Vec<Anime> {
-        let mut anime_list = Vec::new();
-        for value in serde_json::from_str::<Vec<Value>>(text).unwrap() {
-            anime_list.push(Anime {
+impl Parser for Anilibria<'_> {
+    fn search_anime(&self, query: &str) -> Result<Vec<Anime>, serde_json::Error> {
+        Ok(serde_json::from_str::<Vec<serde_json::Value>>(query)?
+            .iter()
+            .map(|value| Anime {
                 announce: value["announce"].as_str().map(ToString::to_string),
                 names: {
                     let names = value["names"].as_object().unwrap();
+
                     Names {
                         ru: names["ru"].as_str().unwrap().to_string(),
                         en: names["en"].as_str().unwrap().to_string(),
@@ -25,6 +27,7 @@ impl Parser for Anilibria {
                     host: value["player"]["host"].as_str().unwrap().to_string(),
                     series: {
                         let series = value["player"]["series"].as_object().unwrap();
+
                         Series {
                             first: series["first"].as_u64().unwrap() as u16,
                             last: series["last"].as_u64().unwrap() as u16,
@@ -34,6 +37,7 @@ impl Parser for Anilibria {
                     playlist: {
                         let player = value["player"].as_object().unwrap();
                         let host = player["host"].as_str().unwrap();
+
                         player["playlist"]
                             .as_object()
                             .unwrap()
@@ -52,8 +56,7 @@ impl Parser for Anilibria {
                             .collect()
                     },
                 },
-            });
-        }
-        anime_list
+            })
+            .collect())
     }
 }
