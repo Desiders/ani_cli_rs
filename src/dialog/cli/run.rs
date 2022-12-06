@@ -7,7 +7,8 @@ use crate::{
         state::{ResultState, State},
         state_machine::StateMachine,
     },
-    enums::language::Language,
+    enums::{language::Language, player::Player},
+    players::mpv,
     sources::base::Source,
 };
 
@@ -83,6 +84,19 @@ where
                     // Source should save current quality
                     ResultState::Success(_) => {
                         // Set next state
+                        state_machine.set_state(State::SelectPlayer);
+                    }
+                    // Go to previous state
+                    ResultState::Break => state_machine.set_previous_state(),
+                }
+            }
+            State::SelectPlayer => {
+                // Select a player
+                match select_player() {
+                    ResultState::Success(player) => {
+                        // Set input player as current player
+                        state_machine.data().set_player(player);
+                        // Set next state
                         state_machine.set_state(State::LaunchPlayer);
                     }
                     // Go to previous state
@@ -121,6 +135,7 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
 
     output::input_msg("Select a language");
     output::info_msg(" (empty input to back previous state):\n");
+
     for (seq_num, (language, count)) in languages.iter().enumerate() {
         output::variant_msg(&format!(
             "\t{seq_num}. {language} ({count} sources)\n",
@@ -356,6 +371,37 @@ where
                 }
                 None => ResultState::Break,
             };
+        }
+    }
+}
+
+/// Select a player
+fn select_player() -> ResultState<Player> {
+    loop {
+        let players_info = Player::players_info();
+
+        output::variant_msg(&format!("\nPlayer list:\n{players_info}"));
+
+        loop {
+            let player_name = match prompt::read_line_or_none("\nPlayer name: ", None) {
+                Some(player_name) => player_name,
+                None => return ResultState::Break,
+            };
+
+            let player = match Player::try_from(player_name) {
+                Ok(player) => player,
+                Err(err) => {
+                    output::warning_msg(&format!("\n{err}"));
+                    continue;
+                }
+            };
+
+            if mpv::check_installation() {
+                return ResultState::Success(player);
+            } else {
+                output::error_msg(&format!("\n{}", player.player_doc()));
+                continue;
+            }
         }
     }
 }

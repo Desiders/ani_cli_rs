@@ -1,4 +1,7 @@
-use crate::{enums::language::Language, sources::base::Source};
+use crate::{
+    enums::{language::Language, player::Player},
+    sources::base::Source,
+};
 
 pub struct Data<S>
 where
@@ -6,6 +9,7 @@ where
 {
     language: Language,
     source: Option<S>,
+    player: Option<Player>,
 }
 
 impl<S> Data<S>
@@ -13,10 +17,11 @@ where
     S: Source,
 {
     #[must_use]
-    pub fn new(language: Language, source: S) -> Self {
+    pub fn new(language: Language, source: S, player: Player) -> Self {
         Self {
             language,
             source: Some(source),
+            player: Some(player),
         }
     }
 
@@ -42,6 +47,15 @@ where
     pub fn set_source(&mut self, source: S) {
         self.source = Some(source);
     }
+
+    #[must_use]
+    pub fn player(&self) -> Option<&Player> {
+        self.player.as_ref()
+    }
+
+    pub fn set_player(&mut self, player: Player) {
+        self.player = Some(player);
+    }
 }
 
 impl<S> Default for Data<S>
@@ -53,6 +67,7 @@ where
         Self {
             language: Language::default(),
             source: None,
+            player: None,
         }
     }
 }

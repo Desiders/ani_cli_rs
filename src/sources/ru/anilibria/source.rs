@@ -184,7 +184,7 @@ impl Source for Anilibria<'_> {
     fn episodes_info(&mut self) -> Result<Self::EpisodesInfo, SourceError> {
         let anime = self.current_anime.as_ref().expect("No anime selected");
 
-        let episodes_info = format!("{series}", series = anime.player.series);
+        let episodes_info = format!("\t{series}\n", series = anime.player.series);
 
         Ok(episodes_info)
     }
@@ -204,7 +204,7 @@ impl Source for Anilibria<'_> {
             // Check if sequence number is valid
             Ok(seq_num) => {
                 // Check if sequence number is out of range and set as current first or last episode
-                if seq_num <= 0 {
+                if seq_num == 0 {
                     self.current_episode = Some(first);
                     return Ok(());
                 } else if seq_num >= last {
@@ -260,7 +260,7 @@ impl Source for Anilibria<'_> {
     fn episode_info(&self) -> Result<Self::EpisodeIndo, SourceError> {
         let episode = self.current_episode.as_ref().expect("No episode selected");
 
-        let episode_info = format!("Episode {episode}");
+        let episode_info = format!("Episode {episode}\n");
 
         Ok(episode_info)
     }
@@ -273,14 +273,14 @@ impl Source for Anilibria<'_> {
 
         let mut qualities_info = String::new();
 
-        if let Some(ref sd) = serie_with_hls_info.sd {
-            qualities_info.push_str(&format!("sd|360p|360|min|1: {sd}\n"));
+        if serie_with_hls_info.sd.is_some() {
+            qualities_info.push_str("sd | 360p | 480p | min | 1\n");
         }
-        if let Some(ref hd) = serie_with_hls_info.hd {
-            qualities_info.push_str(&format!("hd|480p|480|avg|2: {hd}\n"));
+        if serie_with_hls_info.hd.is_some() {
+            qualities_info.push_str("hd | 720p | avg | 2\n");
         }
-        if let Some(ref fhd) = serie_with_hls_info.fhd {
-            qualities_info.push_str(&format!("fhd|1080p|1080|full|max|3: {fhd}\n"));
+        if serie_with_hls_info.fhd.is_some() {
+            qualities_info.push_str("fhd | 1080p | full | max | 3\n");
         }
 
         Ok(qualities_info)
@@ -295,8 +295,10 @@ impl Source for Anilibria<'_> {
         let serie_with_quality_info = anime.player.playlist.get(&episode.to_string()).unwrap();
 
         let quality = match quality.to_lowercase().as_str() {
-            "sd" | "360p" | "360" | "min" | "1" => serie_with_quality_info.sd.as_ref(),
-            "hd" | "480p" | "480" | "avg" | "2" => serie_with_quality_info.hd.as_ref(),
+            "sd" | "360p" | "360" | "480p" | "480" | "min" | "1" => {
+                serie_with_quality_info.sd.as_ref()
+            }
+            "hd" | "720p" | "720" | "avg" | "2" => serie_with_quality_info.hd.as_ref(),
             "fhd" | "1080p" | "1080" | "full" | "max" | "3" => serie_with_quality_info.fhd.as_ref(),
             _ => {
                 return Err(SourceError::UnknownVariant(format!(

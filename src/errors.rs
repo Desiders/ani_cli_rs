@@ -39,14 +39,24 @@ impl From<&str> for SourceError {
 
 pub enum LanguageError {
     UnknownLanguage(String),
-    NotFoundSource(String),
 }
 
 impl Display for LanguageError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnknownLanguage(message) => write!(f, "{message}"),
-            Self::NotFoundSource(message) => write!(f, "{message}"),
+        }
+    }
+}
+
+pub enum PlayerError {
+    UnknownPlayer(String),
+}
+
+impl Display for PlayerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnknownPlayer(message) => write!(f, "{message}"),
         }
     }
 }

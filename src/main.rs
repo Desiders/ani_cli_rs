@@ -1,6 +1,7 @@
 mod dialog;
 mod enums;
 mod errors;
+mod players;
 mod sources;
 
 use enums::language::Language;

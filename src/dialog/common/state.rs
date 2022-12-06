@@ -4,6 +4,7 @@ pub enum State {
     SelectAnime,
     SelectEpisode,
     SelectQuality,
+    SelectPlayer,
     LaunchPlayer,
 }
 
