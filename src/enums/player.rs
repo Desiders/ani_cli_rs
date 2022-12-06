@@ -4,14 +4,14 @@ use std::fmt::{self, Display};
 
 /// Enum for the different players that can be used.
 pub enum Player {
-    MPV,
+    Mpv,
 }
 
 impl Player {
     /// Returns a string with all the players that can be used.
     #[must_use]
     pub fn players_info() -> String {
-        let players_info = [Player::MPV]
+        let players_info = [Player::Mpv]
             .iter()
             .map(|player| format!("\t{player}\n"))
             .collect::<Vec<String>>()
@@ -24,7 +24,7 @@ impl Player {
     #[must_use]
     pub fn player_doc(&self) -> &str {
         match self {
-            Player::MPV => {
+            Player::Mpv => {
                 "Are you sure you have MPV installed? \
                 Try running `mpv --version` in your terminal. \
                 If you don't have MPV installed, you can install it from https://mpv.io/installation/ \
@@ -39,7 +39,7 @@ impl TryFrom<String> for Player {
 
     fn try_from(player: String) -> Result<Self, Self::Error> {
         match player.to_lowercase().as_str() {
-            "mpv" => Ok(Self::MPV),
+            "mpv" => Ok(Self::Mpv),
             _ => Err(PlayerError::UnknownPlayer(format!(
                 "Unknown player: {player}"
             ))),
@@ -50,7 +50,7 @@ impl TryFrom<String> for Player {
 impl Display for Player {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Player::MPV => write!(f, "MPV"),
+            Player::Mpv => write!(f, "MPV"),
         }
     }
 }

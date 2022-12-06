@@ -116,25 +116,23 @@ impl Source for Anilibria<'_> {
             // Check if sequence number is valid
             Ok(seq_num) => {
                 // Check if sequence number is out of range and return first or last anime
-                if seq_num <= 0 {
+                if seq_num == 0 {
                     self.current_anime = Some(Rc::clone(&anime_list[0]));
                     return Ok(());
                 } else if seq_num > anime_len {
                     self.current_anime = Some(Rc::clone(&anime_list[anime_len - 1]));
                     return Ok(());
-                } else {
-                    if let Some(anime) = seq_num
-                        .checked_sub(1)
-                        .and_then(|seq_num| anime_list.get(seq_num))
-                    {
-                        self.current_anime = Some(Rc::clone(anime));
-                        return Ok(());
-                    } else {
-                        return Err(SourceError::UnknownVariant(format!(
-                            "Unknown anime by sequence number: {seq_num}"
-                        )));
-                    }
+                } else if let Some(anime) = seq_num
+                    .checked_sub(1)
+                    .and_then(|seq_num| anime_list.get(seq_num))
+                {
+                    self.current_anime = Some(Rc::clone(anime));
+                    return Ok(());
                 }
+
+                return Err(SourceError::UnknownVariant(format!(
+                    "Unknown anime by sequence number: {seq_num}"
+                )));
             }
             Err(err) => match err.kind() {
                 IntErrorKind::PosOverflow => {
@@ -164,9 +162,7 @@ impl Source for Anilibria<'_> {
                 // Check if anime name is valid
                 ru_name == name || en_name == name
             })
-            .ok_or(SourceError::UnknownVariant(format!(
-                "Unknown anime name: {title}"
-            )))?;
+            .ok_or_else(|| SourceError::UnknownVariant(format!("Unknown anime name: {title}")))?;
 
         self.current_anime = Some(Rc::clone(anime));
 
@@ -210,19 +206,19 @@ impl Source for Anilibria<'_> {
                 } else if seq_num >= last {
                     self.current_episode = Some(last);
                     return Ok(());
-                } else {
-                    // Check if episode number is invalid
-                    anime
-                        .player
-                        .playlist
-                        .get(&seq_num_or_pattern.to_lowercase())
-                        .ok_or(SourceError::UnknownVariant(format!(
-                            "Unknown episode number: {seq_num}"
-                        )))?;
-
-                    self.current_episode = Some(seq_num);
-                    return Ok(());
                 }
+
+                // Check if episode number is invalid
+                anime
+                    .player
+                    .playlist
+                    .get(&seq_num_or_pattern.to_lowercase())
+                    .ok_or_else(|| {
+                        SourceError::UnknownVariant(format!("Unknown episode number: {seq_num}"))
+                    })?;
+
+                self.current_episode = Some(seq_num);
+                return Ok(());
             }
             Err(err) => match err.kind() {
                 IntErrorKind::PosOverflow => {
@@ -308,7 +304,7 @@ impl Source for Anilibria<'_> {
             }
         }
         .unwrap()
-        .to_owned();
+        .clone();
 
         self.current_quality = Some(quality);
 
@@ -318,7 +314,7 @@ impl Source for Anilibria<'_> {
     fn url_for_stream(&self) -> Result<String, SourceError> {
         let quality = self.current_quality.as_ref().expect("No hls unit selected");
 
-        let url = quality.to_owned();
+        let url = quality.clone();
 
         Ok(url)
     }

@@ -24,7 +24,7 @@ where
         match state_machine.current_state() {
             State::SelectLanguage => {
                 // Get user input language
-                match select_language(sources.iter().map(|source| source.language()).collect()) {
+                match select_language(sources.iter().map(Source::language).collect()) {
                     ResultState::Success(language) => {
                         // Set input language as current language
                         state_machine.data().set_language(language);
@@ -151,18 +151,16 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
                     // Check if sequence number is valid
                     Ok(seq_num) => {
                         // Check if sequence number is out of range and return first or last language
-                        if seq_num <= 0 {
+                        if seq_num == 0 {
                             break ResultState::Success(languages[0].0.clone());
                         } else if seq_num > languages_len {
                             break ResultState::Success(languages[languages_len - 1].0.clone());
                         // Return language by sequence number if it's valid
-                        } else {
-                            if let Some((lang, _)) = seq_num
-                                .checked_sub(1)
-                                .and_then(|seq_num| languages.get(seq_num))
-                            {
-                                break ResultState::Success((*lang).clone());
-                            }
+                        } else if let Some((lang, _)) = seq_num
+                            .checked_sub(1)
+                            .and_then(|seq_num| languages.get(seq_num))
+                        {
+                            break ResultState::Success((*lang).clone());
                         }
                     }
                     Err(err) => match err.kind() {
@@ -182,10 +180,8 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
                     },
                 }
 
-                match Language::try_from({
-                    let lang = lang_or_seq_num;
-                    lang
-                }) {
+                let lang = lang_or_seq_num;
+                match Language::try_from(lang) {
                     Ok(lang) => ResultState::Success(lang),
                     Err(err) => {
                         output::warning_msg(&format!("\n{err}"));
@@ -202,7 +198,7 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
 /// # Arguments
 /// List of available sources by language
 #[must_use]
-fn select_source<'a, S>(sources: &'a [S]) -> ResultState<&'a S>
+fn select_source<S>(sources: &[S]) -> ResultState<&S>
 where
     S: Source,
 {
@@ -218,18 +214,16 @@ where
                     // Check if sequence number is valid
                     Ok(seq_num) => {
                         // Check if sequence number is out of range and return first or last source
-                        if seq_num <= 0 {
+                        if seq_num == 0 {
                             break ResultState::Success(&sources[0]);
                         } else if seq_num > sources.len() {
                             break ResultState::Success(&sources[sources.len() - 1]);
                         // Return source by sequence number if it's valid
-                        } else {
-                            if let Some(source) = seq_num
-                                .checked_sub(1)
-                                .and_then(|seq_num| sources.get(seq_num))
-                            {
-                                break ResultState::Success(source);
-                            }
+                        } else if let Some(source) = seq_num
+                            .checked_sub(1)
+                            .and_then(|seq_num| sources.get(seq_num))
+                        {
+                            break ResultState::Success(source);
                         }
                     }
                     Err(err) => match err.kind() {
@@ -250,12 +244,11 @@ where
                 }
 
                 let source_name = source_name_or_seq_num;
-                match sources.iter().find(|source| (**source).eq(&source_name)) {
-                    Some(source) => ResultState::Success(source),
-                    None => {
-                        output::warning_msg(&format!("\nSource \"{source_name}\" not found"));
-                        continue;
-                    }
+                if let Some(source) = sources.iter().find(|source| (**source).eq(&source_name)) {
+                    ResultState::Success(source)
+                } else {
+                    output::warning_msg(&format!("\nSource \"{source_name}\" not found"));
+                    continue;
                 }
             }
             None => ResultState::Break,
@@ -398,10 +391,8 @@ fn select_player() -> ResultState<Player> {
 
             if mpv::check_installation() {
                 return ResultState::Success(player);
-            } else {
-                output::error_msg(&format!("\n{}", player.player_doc()));
-                continue;
             }
+            output::error_msg(&format!("\n{}", player.player_doc()));
         }
     }
 }

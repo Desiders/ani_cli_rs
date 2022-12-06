@@ -1,8 +1,5 @@
 use std::fmt::{self, Display};
 
-use reqwest;
-use serde_json;
-
 pub enum SourceError {
     ApiError(String),
     ParseError(String),
@@ -12,9 +9,9 @@ pub enum SourceError {
 impl Display for SourceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ApiError(message) => write!(f, "{message}"),
-            Self::ParseError(message) => write!(f, "{message}"),
-            Self::UnknownVariant(message) => write!(f, "{message}"),
+            Self::ApiError(message) | Self::ParseError(message) | Self::UnknownVariant(message) => {
+                write!(f, "{message}")
+            }
         }
     }
 }

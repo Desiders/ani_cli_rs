@@ -4,8 +4,8 @@ use crate::{errors::SourceError, Language};
 
 /// A base trait for all sources
 /// # Sub traits
-/// - [Display](std::fmt::Display): Display the name and language of the source, e.g. `Anilibria (Russian)`
-/// - [PartialEq](std::cmp::PartialEq): Compare source by name,
+/// - [`Display`](std::fmt::Display): Display the name and language of the source, e.g. `Anilibria (Russian)`
+/// - [`PartialEq`](std::cmp::PartialEq): Compare source by name,
 ///     e.g. `Anilibria` || `anilibria` || `anilibria.tv` for [Anilibria](crate::sources::ru::anilibria::Anilibria)
 pub trait Source: Clone + Display + PartialEq<String> {
     type SearchAnimeListInfo: Display;

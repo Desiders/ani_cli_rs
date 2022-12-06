@@ -15,6 +15,7 @@ impl Default for State {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub enum ResultState<T> {
     Success(T),
     Break,

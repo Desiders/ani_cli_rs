@@ -29,8 +29,8 @@ impl Parser for Anilibria<'_> {
                         let series = value["player"]["series"].as_object().unwrap();
 
                         Series {
-                            first: series["first"].as_u64().unwrap() as u16,
-                            last: series["last"].as_u64().unwrap() as u16,
+                            first: series["first"].as_u64().unwrap().try_into().unwrap(),
+                            last: series["last"].as_u64().unwrap().try_into().unwrap(),
                             string: series["string"].as_str().unwrap().to_string(),
                         }
                     },
@@ -46,7 +46,7 @@ impl Parser for Anilibria<'_> {
                                 (k.to_string(), {
                                     let hls = v["hls"].as_object().unwrap();
                                     SerieInfo {
-                                        serie: v["serie"].as_u64().unwrap() as u16,
+                                        serie: v["serie"].as_u64().unwrap().try_into().unwrap(),
                                         fhd: hls["fhd"].as_str().map(|s| host.to_string() + s),
                                         hd: hls["hd"].as_str().map(|s| host.to_string() + s),
                                         sd: hls["sd"].as_str().map(|s| host.to_string() + s),
