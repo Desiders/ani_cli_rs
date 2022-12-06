@@ -1,19 +1,19 @@
 use crate::{enums::language::Language, sources::base::Source};
 
-pub struct Data<'a, S>
+pub struct Data<S>
 where
     S: Source,
 {
     language: Language,
-    source: Option<&'a S>,
+    source: Option<S>,
 }
 
-impl<'a, S> Data<'a, S>
+impl<S> Data<S>
 where
     S: Source,
 {
     #[must_use]
-    pub fn new(language: Language, source: &'a S) -> Self {
+    pub fn new(language: Language, source: S) -> Self {
         Self {
             language,
             source: Some(source),
@@ -30,16 +30,21 @@ where
     }
 
     #[must_use]
-    pub fn source(&self) -> Option<&'a S> {
-        self.source.map(|source| source)
+    pub fn source(&self) -> Option<&S> {
+        self.source.as_ref()
     }
 
-    pub fn set_source(&mut self, source: &'a S) {
+    #[must_use]
+    pub fn source_mut(&mut self) -> Option<&mut S> {
+        self.source.as_mut()
+    }
+
+    pub fn set_source(&mut self, source: S) {
         self.source = Some(source);
     }
 }
 
-impl<S> Default for Data<'_, S>
+impl<S> Default for Data<S>
 where
     S: Source,
 {

@@ -6,7 +6,7 @@ mod sources;
 use enums::language::Language;
 
 fn main() {
-    let sources = [&mut sources::ru::anilibria::Anilibria::default()];
+    let sources = [sources::ru::anilibria::Anilibria::default()];
 
     match dialog::cli::run(&sources) {
         dialog::ResultState::Success(_) => unreachable!(),

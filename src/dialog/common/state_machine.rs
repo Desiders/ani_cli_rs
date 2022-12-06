@@ -4,26 +4,26 @@ use crate::sources::base::Source;
 
 use std::rc::Rc;
 
-pub struct StateMachine<'a, S>
+pub struct StateMachine<S>
 where
     S: Source,
 {
     previous_states: Vec<Rc<State>>,
     state: Rc<State>,
-    data: Data<'a, S>,
+    data: Data<S>,
 }
 
-impl<'a, S> StateMachine<'a, S>
+impl<S> StateMachine<S>
 where
     S: Source,
 {
     #[must_use]
-    pub fn new<St>(state: St, data: Data<'a, S>) -> Self
+    pub fn new<St>(state: St, data: Data<S>) -> Self
     where
         St: Into<Rc<State>>,
     {
         Self {
-            previous_states: Vec::new(),
+            previous_states: vec![],
             state: state.into(),
             data,
         }
@@ -52,12 +52,12 @@ where
 
     /// Get data
     #[must_use]
-    pub fn data(&mut self) -> &mut Data<'a, S> {
+    pub fn data(&mut self) -> &mut Data<S> {
         &mut self.data
     }
 }
 
-impl<S> Default for StateMachine<'_, S>
+impl<S> Default for StateMachine<S>
 where
     S: Source,
 {

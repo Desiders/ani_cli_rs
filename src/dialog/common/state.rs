@@ -2,6 +2,9 @@ pub enum State {
     SelectLanguage,
     SelectSource,
     SelectAnime,
+    SelectEpisode,
+    SelectQuality,
+    LaunchPlayer,
 }
 
 impl Default for State {

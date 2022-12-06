@@ -7,13 +7,13 @@ use crate::{errors::SourceError, Language};
 /// - [Display](std::fmt::Display): Display the name and language of the source, e.g. `Anilibria (Russian)`
 /// - [PartialEq](std::cmp::PartialEq): Compare source by name,
 ///     e.g. `Anilibria` || `anilibria` || `anilibria.tv` for [Anilibria](crate::sources::ru::anilibria::Anilibria)
-pub trait Source: Display + PartialEq<String> {
+pub trait Source: Clone + Display + PartialEq<String> {
     type SearchAnimeListInfo: Display;
     type AnimeInfo: Display;
     type EpisodesInfo: Display;
     type EpisodeIndo: Display;
-    type HLSListInfo: Display;
-    type HLSInfo: Display;
+    type QualitiesInfo: Display;
+    type QualityInfo: Display;
 
     /// Get language of the source
     fn language(&self) -> &Language;
@@ -21,7 +21,7 @@ pub trait Source: Display + PartialEq<String> {
     /// Search anime by name
     /// # Arguments
     /// * `name` - Anime name.
-    fn search_anime(&mut self, query: &str) -> Result<Self::SearchAnimeListInfo, SourceError>;
+    fn search_anime_list(&mut self, query: &str) -> Result<Self::SearchAnimeListInfo, SourceError>;
 
     /// Select an anime as current anime. \
     /// This method is used to select an anime from list of anime
@@ -52,18 +52,18 @@ pub trait Source: Display + PartialEq<String> {
     /// Get information about the episode
     fn episode_info(&self) -> Result<Self::EpisodeIndo, SourceError>;
 
-    /// Get information about HLS of current episode
-    fn hls_info(&mut self) -> Result<Self::HLSListInfo, SourceError>;
+    /// Get information about qualities of current episode
+    fn qualities_info(&mut self) -> Result<Self::QualitiesInfo, SourceError>;
 
-    /// Select a HLS as current HLS unit. \
-    /// This method is used to select a HLS from list of HLS units
+    /// Select a quality as current quality. \
+    /// This method is used to select a quality from qualities
     /// and select it for future use. \
-    /// Source should remember selected the HLS unit and use it in other related methods.
+    /// Source should remember selected the quality and use it in other related methods.
     /// # Arguments
-    /// Any detail that can define a HLS. \
-    /// For example, HLS unit name, sequence number in list and other. \
-    /// What is the best way to specify the HLS, depends on the source.
-    fn select_hls_unit_as_current(&mut self, _: String) -> Result<(), SourceError>;
+    /// Any detail that can define a quality. \
+    /// For example, quality name, sequence number in list and other. \
+    /// What is the best way to specify the quality, depends on the source.
+    fn select_quality_as_current(&mut self, _: String) -> Result<(), SourceError>;
 
     /// Get url for steam anime and use it in player
     fn url_for_stream(&self) -> Result<String, SourceError>;

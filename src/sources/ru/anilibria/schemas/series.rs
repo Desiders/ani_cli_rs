@@ -1,5 +1,6 @@
 use std::fmt::{self, Display};
 
+#[derive(Clone)]
 pub struct Series {
     pub first: u16,     // 1, 1
     pub last: u16,      // 24, 1

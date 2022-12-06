@@ -2,6 +2,7 @@ use super::{Names, Player};
 
 use std::fmt::{self, Display};
 
+#[derive(Clone)]
 pub struct Anime {
     pub announce: Option<String>, // "Серии выходят каждое воскресенье"
     pub names: Names,

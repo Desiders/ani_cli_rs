@@ -13,7 +13,7 @@ use crate::{
 
 /// Run CLI dialog
 #[must_use]
-pub fn run<S>(sources: &[&mut S]) -> ResultState<()>
+pub fn run<S>(sources: &[S]) -> ResultState<()>
 where
     S: Source,
 {
@@ -31,15 +31,15 @@ where
                         state_machine.set_state(State::SelectSource);
                     }
                     // Break dialog, because this state is first
-                    ResultState::Break => return ResultState::Break,
+                    ResultState::Break => break ResultState::Break,
                 }
             }
             State::SelectSource => {
                 // Get user input source
-                match select_source(sources.iter().map(|source| &**source).collect()) {
+                match select_source(sources) {
                     ResultState::Success(source) => {
                         // Set input source as current source
-                        state_machine.data().set_source(source);
+                        state_machine.data().set_source(source.clone());
                         // Set next state
                         state_machine.set_state(State::SelectAnime);
                     }
@@ -47,7 +47,49 @@ where
                     ResultState::Break => state_machine.set_previous_state(),
                 }
             }
-            State::SelectAnime => todo!(),
+            State::SelectAnime => {
+                let source = state_machine.data().source_mut().unwrap();
+
+                // Select anime
+                match select_anime(source) {
+                    // Source should save current anime
+                    ResultState::Success(_) => {
+                        // Set next state
+                        state_machine.set_state(State::SelectEpisode);
+                    }
+                    // Go to previous state
+                    ResultState::Break => state_machine.set_previous_state(),
+                }
+            }
+            State::SelectEpisode => {
+                let source = state_machine.data().source_mut().unwrap();
+
+                // Select episode
+                match select_episode(source) {
+                    // Source should save current episode
+                    ResultState::Success(_) => {
+                        // Set next state
+                        state_machine.set_state(State::SelectQuality);
+                    }
+                    // Go to previous state
+                    ResultState::Break => state_machine.set_previous_state(),
+                }
+            }
+            State::SelectQuality => {
+                let source = state_machine.data().source_mut().unwrap();
+
+                // Select quality
+                match select_quality(source) {
+                    // Source should save current quality
+                    ResultState::Success(_) => {
+                        // Set next state
+                        state_machine.set_state(State::LaunchPlayer);
+                    }
+                    // Go to previous state
+                    ResultState::Break => state_machine.set_previous_state(),
+                }
+            }
+            State::LaunchPlayer => todo!(),
         }
     }
 }
@@ -78,13 +120,11 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
     languages.sort_by(|(_, a), (_, b)| b.cmp(a));
 
     output::input_msg("Select a language");
-    output::info_msg(" (empty input to exit):\n");
-    for (index, (language, count)) in languages.iter().enumerate() {
+    output::info_msg(" (empty input to back previous state):\n");
+    for (seq_num, (language, count)) in languages.iter().enumerate() {
         output::variant_msg(&format!(
-            "\t{}. {} ({} sources)\n",
-            index + 1,
-            language,
-            count
+            "\t{seq_num}. {language} ({count} sources)\n",
+            seq_num = seq_num + 1
         ));
     }
 
@@ -133,7 +173,7 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
                 }) {
                     Ok(lang) => ResultState::Success(lang),
                     Err(err) => {
-                        output::warning_msg(&format!("\n{}", err));
+                        output::warning_msg(&format!("\n{err}"));
                         continue;
                     }
                 }
@@ -147,12 +187,12 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
 /// # Arguments
 /// List of available sources by language
 #[must_use]
-fn select_source<'a, S>(sources: Vec<&'a S>) -> ResultState<&'a S>
+fn select_source<'a, S>(sources: &'a [S]) -> ResultState<&'a S>
 where
     S: Source,
 {
-    for (index, source) in sources.iter().enumerate() {
-        output::variant_msg(&format!("\t{}. {}\n", index + 1, source));
+    for (seq_num, source) in sources.iter().enumerate() {
+        output::variant_msg(&format!("\t{seq_num}. {source}\n", seq_num = seq_num + 1));
     }
 
     loop {
@@ -164,16 +204,16 @@ where
                     Ok(seq_num) => {
                         // Check if sequence number is out of range and return first or last source
                         if seq_num <= 0 {
-                            break ResultState::Success(sources[0]);
+                            break ResultState::Success(&sources[0]);
                         } else if seq_num > sources.len() {
-                            break ResultState::Success(sources[sources.len() - 1]);
+                            break ResultState::Success(&sources[sources.len() - 1]);
                         // Return source by sequence number if it's valid
                         } else {
                             if let Some(source) = seq_num
                                 .checked_sub(1)
                                 .and_then(|seq_num| sources.get(seq_num))
                             {
-                                break ResultState::Success(*source);
+                                break ResultState::Success(source);
                             }
                         }
                     }
@@ -196,14 +236,126 @@ where
 
                 let source_name = source_name_or_seq_num;
                 match sources.iter().find(|source| (**source).eq(&source_name)) {
-                    Some(source) => ResultState::Success(*source),
+                    Some(source) => ResultState::Success(source),
                     None => {
-                        output::warning_msg(&format!("\nSource \"{}\" not found", source_name));
+                        output::warning_msg(&format!("\nSource \"{source_name}\" not found"));
                         continue;
                     }
                 }
             }
             None => ResultState::Break,
         };
+    }
+}
+
+/// Select an anime
+/// # Arguments
+/// Source to search anime
+fn select_anime<S>(source: &mut S) -> ResultState<()>
+where
+    S: Source,
+{
+    loop {
+        let anime_name = match prompt::read_line_or_none("\nAnime name: ", None) {
+            Some(anime_name) => anime_name,
+            None => return ResultState::Break,
+        };
+
+        let anime_list_info = match source.search_anime_list(&anime_name) {
+            Ok(anime_list_info) => anime_list_info,
+            Err(err) => {
+                output::error_msg(&format!("\n{err}"));
+                continue;
+            }
+        };
+
+        output::variant_msg(&format!(
+            "\nAnime list for \"{anime_name}\":\n{anime_list_info}"
+        ));
+
+        loop {
+            return match prompt::read_line_or_none("\nAnime: ", None) {
+                Some(anime_name_or_seq_num) => {
+                    match source.select_anime_as_current(anime_name_or_seq_num) {
+                        Ok(()) => ResultState::Success(()),
+                        Err(err) => {
+                            output::warning_msg(&format!("\n{err}"));
+                            continue;
+                        }
+                    }
+                }
+                None => ResultState::Break,
+            };
+        }
+    }
+}
+
+/// Select an episode
+/// # Arguments
+/// Source to search episode
+fn select_episode<S>(source: &mut S) -> ResultState<()>
+where
+    S: Source,
+{
+    loop {
+        let episode_list_info = match source.episodes_info() {
+            Ok(episode_list_info) => episode_list_info,
+            Err(err) => {
+                output::error_msg(&format!("\n{err}"));
+                continue;
+            }
+        };
+
+        output::variant_msg(&format!("\nEpisode list for anime:\n{episode_list_info}"));
+
+        loop {
+            return match prompt::read_line_or_none("\nEpisode: ", None) {
+                Some(episode_name_or_seq_num) => {
+                    match source.select_episode_as_current(episode_name_or_seq_num) {
+                        Ok(()) => ResultState::Success(()),
+                        Err(err) => {
+                            output::warning_msg(&format!("\n{err}"));
+                            continue;
+                        }
+                    }
+                }
+                None => ResultState::Break,
+            };
+        }
+    }
+}
+
+/// Select a quality
+/// # Arguments
+/// Source to search quality
+fn select_quality<S>(source: &mut S) -> ResultState<()>
+where
+    S: Source,
+{
+    loop {
+        let quality_list_info = match source.qualities_info() {
+            Ok(quality_list_info) => quality_list_info,
+            Err(err) => {
+                output::error_msg(&format!("\n{err}"));
+                continue;
+            }
+        };
+
+        output::variant_msg(&format!("\nQuality list for episode:\n{quality_list_info}"));
+
+        loop {
+            return match prompt::read_line_or_none("\nQuality: ", None) {
+                Some(quality_name_or_seq_num) => {
+                    match source.select_quality_as_current(quality_name_or_seq_num) {
+                        Ok(()) => ResultState::Success(()),
+                        Err(err) => {
+                            output::warning_msg(&format!("\n{err}"));
+                            continue;
+                        }
+                    }
+                }
+                None => ResultState::Break,
+            };
+        }
     }
 }
