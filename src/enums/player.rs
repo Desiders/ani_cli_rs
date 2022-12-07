@@ -25,10 +25,10 @@ impl Player {
     }
 }
 
-impl TryFrom<String> for Player {
+impl TryFrom<&str> for Player {
     type Error = PlayerError;
 
-    fn try_from(player: String) -> Result<Self, Self::Error> {
+    fn try_from(player: &str) -> Result<Self, Self::Error> {
         match player.to_lowercase().as_str() {
             "mpv" => Ok(Self::Mpv),
             _ => Err(PlayerError::UnknownPlayer(format!(

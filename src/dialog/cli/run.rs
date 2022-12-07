@@ -304,30 +304,49 @@ where
 }
 
 fn select_player() -> ResultState<Player> {
-    let mut players_info = String::new();
-    for player in players() {
-        players_info.push_str(&format!("\t{player}\n"));
+    let players = players();
+
+    output::variant_headline_msg("Available players:\n");
+
+    for (seq_num, player) in players.iter().enumerate() {
+        output::variant_msg(&format!("\t{seq_num}. {player}\n", seq_num = seq_num + 1));
     }
 
-    output::variant_headline_msg(&format!("Players:\n{players_info}"));
-
     loop {
-        let player_name = match prompt::read_line_or_none("Select a player: ", None) {
-            Some(player_name) => player_name,
+        let player = match prompt::read_line_or_none("Select a player: ", None) {
+            Some(player_name_or_seq_num) => match Player::try_from(player_name_or_seq_num.as_str())
+            {
+                Ok(player) => player,
+                Err(err) => {
+                    if let Ok(seq_num) = player_name_or_seq_num.parse::<usize>() {
+                        if let Some(player) = seq_num
+                            .checked_sub(1)
+                            .and_then(|seq_num| players.get(seq_num))
+                        {
+                            player.clone()
+                        } else {
+                            output::warning_msg(&format!(
+                                "Unknown player sequence number `{seq_num}`\n"
+                            ));
+                            continue;
+                        }
+                    } else {
+                        output::warning_msg(&format!("{err}\n"));
+                        continue;
+                    }
+                }
+            },
             None => return ResultState::Break,
         };
 
-        let player = match Player::try_from(player_name) {
-            Ok(player) => player,
-            Err(err) => {
-                output::warning_msg(&format!("{err}\n"));
-                continue;
+        match player {
+            Player::Mpv => {
+                if mpv::is_installed() {
+                    return ResultState::Success(player);
+                }
             }
-        };
-
-        if mpv::is_installed() {
-            return ResultState::Success(player);
         }
+
         output::error_msg(&format!("{}\n", player.doc()));
     }
 }
