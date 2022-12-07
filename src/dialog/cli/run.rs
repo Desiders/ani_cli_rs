@@ -15,8 +15,7 @@ use crate::{
 
 use std::collections::HashMap;
 
-#[must_use]
-pub fn run<S>(sources: &[S]) -> ResultState<()>
+pub fn run<S>(sources: &[S])
 where
     S: Source,
 {
@@ -30,7 +29,7 @@ where
                         state_machine.data().set_language(language);
                         state_machine.set_state(State::SelectSource);
                     }
-                    ResultState::Break => break ResultState::Break,
+                    ResultState::Break => break,
                 }
             }
             State::SelectSource => match select_source(sources) {
@@ -93,6 +92,8 @@ where
             }
         }
     }
+
+    finish();
 }
 
 pub fn finish() {
