@@ -8,15 +8,15 @@ pub enum Language {
     All,
 }
 
-impl TryFrom<String> for Language {
+impl TryFrom<&str> for Language {
     type Error = LanguageError;
 
-    fn try_from(language: String) -> Result<Self, Self::Error> {
+    fn try_from(language: &str) -> Result<Self, Self::Error> {
         match language.to_lowercase().as_str() {
             "russian" | "rus" | "ru" => Ok(Self::Russian),
             "all" => Ok(Self::All),
             _ => Err(LanguageError::UnknownLanguage(format!(
-                "Unknown language: {language}"
+                "Unknown language `{language}`"
             ))),
         }
     }
@@ -31,7 +31,7 @@ impl Default for Language {
 impl Display for Language {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Language::Russian => write!(f, "Russian / Русский"),
+            Language::Russian => write!(f, "Russian"),
             Language::All => unreachable!(),
         }
     }

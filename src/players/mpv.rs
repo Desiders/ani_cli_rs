@@ -1,11 +1,8 @@
 use subprocess;
 
-const CHECK_VERSION: &[&str] = &["mpv", "--version"];
-
-/// Check if player is installed
-pub fn check_installation() -> bool {
-    match subprocess::Exec::cmd(CHECK_VERSION[0])
-        .args(&CHECK_VERSION[1..])
+pub fn is_installed() -> bool {
+    match subprocess::Exec::cmd("mpv")
+        .args(&["--version"])
         .stdout(subprocess::Redirection::Pipe)
         .stderr(subprocess::Redirection::Merge)
         .capture()
@@ -13,4 +10,19 @@ pub fn check_installation() -> bool {
         Ok(output) => output.exit_status.success(),
         Err(_) => false,
     }
+}
+
+/// Launch the player
+pub fn launch(url: &str) -> Result<(), subprocess::PopenError> {
+    subprocess::Popen::create(
+        &["mpv", url, "--fs"],
+        subprocess::PopenConfig {
+            stdin: subprocess::Redirection::None,
+            stdout: subprocess::Redirection::Pipe,
+            stderr: subprocess::Redirection::Merge,
+            ..Default::default()
+        },
+    )?;
+
+    Ok(())
 }

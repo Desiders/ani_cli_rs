@@ -2,27 +2,18 @@ use crate::errors::PlayerError;
 
 use std::fmt::{self, Display};
 
-/// Enum for the different players that can be used.
+#[derive(Clone)]
 pub enum Player {
     Mpv,
 }
 
+pub const fn players() -> &'static [Player] {
+    &[Player::Mpv]
+}
+
 impl Player {
-    /// Returns a string with all the players that can be used.
     #[must_use]
-    pub fn players_info() -> String {
-        let players_info = [Player::Mpv]
-            .iter()
-            .map(|player| format!("\t{player}\n"))
-            .collect::<Vec<String>>()
-            .join(", ");
-
-        players_info
-    }
-
-    /// Returns a string with the documentation for the player.
-    #[must_use]
-    pub fn player_doc(&self) -> &str {
+    pub fn doc(&self) -> &str {
         match self {
             Player::Mpv => {
                 "Are you sure you have MPV installed? \
@@ -41,7 +32,7 @@ impl TryFrom<String> for Player {
         match player.to_lowercase().as_str() {
             "mpv" => Ok(Self::Mpv),
             _ => Err(PlayerError::UnknownPlayer(format!(
-                "Unknown player: {player}"
+                "Unknown player `{player}`"
             ))),
         }
     }
