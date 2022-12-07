@@ -4,12 +4,20 @@ use termcolor::{self, WriteColor as _};
 pub fn input_msg(msg: &str) {
     let mut stdout = termcolor::StandardStream::stdout(termcolor::ColorChoice::Always);
     stdout
-        .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::White)))
+        .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::Green)))
         .unwrap();
 
-    write!(stdout, "{}", msg).unwrap();
+    let msg = if msg.starts_with('\n') {
+        writeln!(stdout).unwrap();
+        msg.replacen('\n', "", 1)
+    } else {
+        msg.to_string()
+    };
 
+    write!(stdout, "> ").unwrap();
     stdout.reset().unwrap();
+    write!(stdout, "{msg}").unwrap();
+
     stdout.flush().unwrap();
 }
 
@@ -19,10 +27,16 @@ pub fn warning_msg(msg: &str) {
         .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::Yellow)))
         .unwrap();
 
-    write!(stdout, "{}", msg).unwrap();
+    let msg = if msg.starts_with('\n') {
+        writeln!(stdout).unwrap();
+        msg.replacen('\n', "", 1)
+    } else {
+        msg.to_string()
+    };
 
+    write!(stdout, "\t<-> ").unwrap();
     stdout.reset().unwrap();
-    stdout.flush().unwrap();
+    write!(stdout, "{msg}").unwrap();
 }
 
 pub fn error_msg(msg: &str) {
@@ -31,10 +45,16 @@ pub fn error_msg(msg: &str) {
         .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::Red)))
         .unwrap();
 
-    write!(stdout, "{}", msg).unwrap();
+    let msg = if msg.starts_with('\n') {
+        writeln!(stdout).unwrap();
+        msg.replacen('\n', "", 1)
+    } else {
+        msg.to_string()
+    };
 
+    write!(stdout, "\t<-> ").unwrap();
     stdout.reset().unwrap();
-    stdout.flush().unwrap();
+    write!(stdout, "{msg}").unwrap();
 }
 
 pub fn info_msg(msg: &str) {
@@ -43,19 +63,7 @@ pub fn info_msg(msg: &str) {
         .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::Blue)))
         .unwrap();
 
-    write!(stdout, "{}", msg).unwrap();
-
-    stdout.reset().unwrap();
-    stdout.flush().unwrap();
-}
-
-pub fn success_msg(msg: &str) {
-    let mut stdout = termcolor::StandardStream::stdout(termcolor::ColorChoice::Always);
-    stdout
-        .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::Green)))
-        .unwrap();
-
-    write!(stdout, "{}", msg).unwrap();
+    write!(stdout, "{msg}").unwrap();
 
     stdout.reset().unwrap();
     stdout.flush().unwrap();
@@ -64,11 +72,31 @@ pub fn success_msg(msg: &str) {
 pub fn variant_msg(msg: &str) {
     let mut stdout = termcolor::StandardStream::stdout(termcolor::ColorChoice::Always);
     stdout
+        .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::White)))
+        .unwrap();
+
+    write!(stdout, "{msg}").unwrap();
+
+    stdout.reset().unwrap();
+    stdout.flush().unwrap();
+}
+
+pub fn variant_headline_msg(msg: &str) {
+    let mut stdout = termcolor::StandardStream::stdout(termcolor::ColorChoice::Always);
+    stdout
         .set_color(termcolor::ColorSpec::new().set_fg(Some(termcolor::Color::Cyan)))
         .unwrap();
 
-    write!(stdout, "{}", msg).unwrap();
+    let msg = if msg.starts_with('\n') {
+        writeln!(stdout).unwrap();
+        msg.replacen('\n', "", 1)
+    } else {
+        msg.to_string()
+    };
 
+    write!(stdout, "> ").unwrap();
     stdout.reset().unwrap();
+    write!(stdout, "{msg}").unwrap();
+
     stdout.flush().unwrap();
 }

@@ -9,6 +9,6 @@ pub struct Series {
 
 impl Display for Series {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{string}", string = self.string)
+        write!(f, "{}", self.string)
     }
 }
