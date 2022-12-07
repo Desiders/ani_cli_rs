@@ -4,7 +4,6 @@ use crate::{enums::language::Language, errors::SourceError, sources::base::Sourc
 use reqwest;
 use std::{
     fmt::{self, Display},
-    num::IntErrorKind,
     rc::Rc,
 };
 
@@ -18,7 +17,7 @@ pub struct Anilibria<'a> {
     current_anime_list: Vec<Rc<Anime>>,
     current_anime: Option<Rc<Anime>>,
     current_episode: Option<u16>,
-    current_quality: Option<String>,
+    current_hls: Option<String>,
 }
 
 impl<'a> Anilibria<'a> {
@@ -35,7 +34,7 @@ impl<'a> Anilibria<'a> {
             current_anime_list: Vec::new(),
             current_anime: None,
             current_episode: None,
-            current_quality: None,
+            current_hls: None,
         }
     }
 
@@ -59,7 +58,7 @@ impl Default for Anilibria<'_> {
 
 impl Display for Anilibria<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} ({})", self.name, self.language)
+        write!(f, "{}", self.name)
     }
 }
 
@@ -89,7 +88,7 @@ impl Source for Anilibria<'_> {
 
         if anime_list.is_empty() {
             return Err(SourceError::ApiError(format!(
-                "Anime list by query \"{}\" is empty",
+                "Anime list by query `{}` is empty",
                 query
             )));
         }
@@ -97,7 +96,7 @@ impl Source for Anilibria<'_> {
         let anime_info = anime_list
             .iter()
             .enumerate()
-            .map(|(seq_num, anime)| format!("{seq_num}. {anime}\n", seq_num = seq_num + 1))
+            .map(|(seq_num, anime)| format!("\t{seq_num}. {anime}\n", seq_num = seq_num + 1))
             .collect();
 
         self.current_anime_list = anime_list.into_iter().map(Rc::new).collect();
@@ -105,64 +104,42 @@ impl Source for Anilibria<'_> {
         Ok(anime_info)
     }
 
-    /// # Arguments
-    /// Anime title or sequence number in list
     fn select_anime_as_current(&mut self, title_or_seq_num: String) -> Result<(), SourceError> {
         let anime_list = &self.current_anime_list;
-        let anime_len = anime_list.len();
 
-        // Check if input is sequence number
-        match title_or_seq_num.parse::<usize>() {
-            // Check if sequence number is valid
-            Ok(seq_num) => {
-                // Check if sequence number is out of range and return first or last anime
-                if seq_num == 0 {
-                    self.current_anime = Some(Rc::clone(&anime_list[0]));
-                    return Ok(());
-                } else if seq_num > anime_len {
-                    self.current_anime = Some(Rc::clone(&anime_list[anime_len - 1]));
-                    return Ok(());
-                } else if let Some(anime) = seq_num
-                    .checked_sub(1)
-                    .and_then(|seq_num| anime_list.get(seq_num))
-                {
-                    self.current_anime = Some(Rc::clone(anime));
-                    return Ok(());
+        let anime = if let Some(anime) = anime_list.iter().find(|anime| {
+            let name = title_or_seq_num.to_lowercase();
+            let ru_name = anime.names.ru.to_lowercase();
+            let en_name = anime.names.en.to_lowercase();
+
+            // User can different combinations ru and en names,
+            // so we use `.contains` for works different situations,
+            // e.g `A | B` | `B | A` | `a` (where `A` is `ru`, `B` is `en` and `a` is incomplete name) returns `true`
+            ru_name.contains(&name) || en_name.contains(&name)
+        }) {
+            anime
+        } else {
+            match title_or_seq_num.parse::<usize>() {
+                Ok(seq_num) => {
+                    if let Some(anime) = seq_num
+                        .checked_sub(1)
+                        .and_then(|seq_num| anime_list.get(seq_num))
+                    {
+                        anime
+                    } else {
+                        return Err(SourceError::UnknownVariant(format!(
+                            "Unknown anime sequence number `{}`",
+                            seq_num
+                        )));
+                    }
                 }
-
-                return Err(SourceError::UnknownVariant(format!(
-                    "Unknown anime by sequence number: {seq_num}"
-                )));
-            }
-            Err(err) => match err.kind() {
-                IntErrorKind::PosOverflow => {
+                Err(_) => {
                     return Err(SourceError::UnknownVariant(format!(
-                        "Anime number must be less than {}",
-                        usize::MAX
-                    )));
+                        "Unknown anime name `{title_or_seq_num}`"
+                    )))
                 }
-                IntErrorKind::NegOverflow => {
-                    return Err(SourceError::UnknownVariant(
-                        "Anime number must be greater than 0".to_string(),
-                    ));
-                }
-                IntErrorKind::Empty | IntErrorKind::Zero => unreachable!(),
-                _ => {}
-            },
-        }
-
-        let title = title_or_seq_num;
-        let anime = anime_list
-            .iter()
-            .find(|anime| {
-                let name = title.to_lowercase();
-                let ru_name = anime.names.ru.to_lowercase();
-                let en_name = anime.names.en.to_lowercase();
-
-                // Check if anime name is valid
-                ru_name == name || en_name == name
-            })
-            .ok_or_else(|| SourceError::UnknownVariant(format!("Unknown anime name: {title}")))?;
+            }
+        };
 
         self.current_anime = Some(Rc::clone(anime));
 
@@ -180,13 +157,11 @@ impl Source for Anilibria<'_> {
     fn episodes_info(&mut self) -> Result<Self::EpisodesInfo, SourceError> {
         let anime = self.current_anime.as_ref().expect("No anime selected");
 
-        let episodes_info = format!("\t{series}\n", series = anime.player.series);
+        let episodes_info = format!("{episodes}", episodes = anime.player.series);
 
         Ok(episodes_info)
     }
 
-    /// # Arguments
-    /// Episode number or pattern, e.g. "first", "f", "last", "l"
     fn select_episode_as_current(&mut self, seq_num_or_pattern: String) -> Result<(), SourceError> {
         assert!(!seq_num_or_pattern.is_empty());
 
@@ -195,56 +170,27 @@ impl Source for Anilibria<'_> {
         let first = anime.player.series.first;
         let last = anime.player.series.last;
 
-        // Check if input is sequence number
-        match seq_num_or_pattern.parse::<u16>() {
-            // Check if sequence number is valid
-            Ok(seq_num) => {
-                // Check if sequence number is out of range and set as current first or last episode
-                if seq_num == 0 {
-                    self.current_episode = Some(first);
-                    return Ok(());
-                } else if seq_num >= last {
-                    self.current_episode = Some(last);
-                    return Ok(());
-                }
-
-                // Check if episode number is invalid
-                anime
-                    .player
-                    .playlist
-                    .get(&seq_num_or_pattern.to_lowercase())
-                    .ok_or_else(|| {
-                        SourceError::UnknownVariant(format!("Unknown episode number: {seq_num}"))
-                    })?;
-
-                self.current_episode = Some(seq_num);
-                return Ok(());
-            }
-            Err(err) => match err.kind() {
-                IntErrorKind::PosOverflow => {
-                    return Err(SourceError::UnknownVariant(format!(
-                        "Episode number must be less than {}",
-                        u16::MAX
-                    )));
-                }
-                IntErrorKind::NegOverflow => {
-                    return Err(SourceError::UnknownVariant(
-                        "Episode number must be greater than 0".to_string(),
-                    ));
-                }
-                IntErrorKind::Empty | IntErrorKind::Zero => unreachable!(),
-                _ => {}
-            },
-        }
-
-        let pattern = seq_num_or_pattern;
-        let episode = match pattern.to_lowercase().as_str() {
+        let episode = match seq_num_or_pattern.to_lowercase().as_str() {
             "first" | "f" => first,
             "last" | "l" => last,
             _ => {
-                return Err(SourceError::UnknownVariant(format!(
-                    "Unknown episode pattern: {pattern}.\nPossible patterns: first|f, last|l"
-                )))
+                if let Ok(seq_num) = seq_num_or_pattern.parse::<u16>() {
+                    if anime
+                        .player
+                        .playlist
+                        .get(&seq_num_or_pattern.to_lowercase())
+                        .is_none()
+                    {
+                        return Err(SourceError::UnknownVariant(format!(
+                            "Unknown episode number `{seq_num}`"
+                        )));
+                    }
+                    seq_num
+                } else {
+                    return Err(SourceError::UnknownVariant(format!(
+                            "Unknown episode pattern `{seq_num_or_pattern}`. Possible patterns: first|f, last|l"
+                        )));
+                }
             }
         };
 
@@ -256,7 +202,7 @@ impl Source for Anilibria<'_> {
     fn episode_info(&self) -> Result<Self::EpisodeIndo, SourceError> {
         let episode = self.current_episode.as_ref().expect("No episode selected");
 
-        let episode_info = format!("Episode {episode}\n");
+        let episode_info = format!("{episode}");
 
         Ok(episode_info)
     }
@@ -270,51 +216,49 @@ impl Source for Anilibria<'_> {
         let mut qualities_info = String::new();
 
         if serie_with_hls_info.sd.is_some() {
-            qualities_info.push_str("sd | 360p | 480p | min | 1\n");
+            qualities_info.push_str("\t1 | sd | 360p | 480p | min\n");
         }
         if serie_with_hls_info.hd.is_some() {
-            qualities_info.push_str("hd | 720p | avg | 2\n");
+            qualities_info.push_str("\t2 | hd | 720p | avg\n");
         }
         if serie_with_hls_info.fhd.is_some() {
-            qualities_info.push_str("fhd | 1080p | full | max | 3\n");
+            qualities_info.push_str("\t3 | fhd | 1080p | full | max\n");
         }
 
         Ok(qualities_info)
     }
 
-    /// # Arguments
-    /// Quality, e.g. "sd", "hd", "fhd", "full hd", "360p", "480p", "720p", "1080p"
     fn select_quality_as_current(&mut self, quality: String) -> Result<(), SourceError> {
         let anime = self.current_anime.as_ref().expect("No anime selected");
         let episode = self.current_episode.as_ref().expect("No episode selected");
 
-        let serie_with_quality_info = anime.player.playlist.get(&episode.to_string()).unwrap();
+        let serie_with_hls_info = anime.player.playlist.get(&episode.to_string()).unwrap();
 
-        let quality = match quality.to_lowercase().as_str() {
-            "sd" | "360p" | "360" | "480p" | "480" | "min" | "1" => {
-                serie_with_quality_info.sd.as_ref()
-            }
-            "hd" | "720p" | "720" | "avg" | "2" => serie_with_quality_info.hd.as_ref(),
-            "fhd" | "1080p" | "1080" | "full" | "max" | "3" => serie_with_quality_info.fhd.as_ref(),
+        let hls = match quality.to_lowercase().as_str() {
+            "1" | "sd" | "360p" | "360" | "480p" | "480" | "min" => serie_with_hls_info.sd.as_ref(),
+            "2" | "hd" | "720p" | "720" | "avg" => serie_with_hls_info.hd.as_ref(),
+            "3" | "fhd" | "1080p" | "1080" | "full" | "max" => serie_with_hls_info.fhd.as_ref(),
             _ => {
                 return Err(SourceError::UnknownVariant(format!(
-                    "Unknown quality: {}",
-                    quality
+                    "Unknown quality `{quality}`"
                 )));
             }
         }
-        .unwrap()
-        .clone();
+        .unwrap();
 
-        self.current_quality = Some(quality);
+        self.current_hls = Some(hls.clone());
 
         Ok(())
     }
 
     fn url_for_stream(&self) -> Result<String, SourceError> {
-        let quality = self.current_quality.as_ref().expect("No hls unit selected");
+        let hls = self.current_hls.as_ref().expect("No hls unit selected");
 
-        let url = quality.clone();
+        if hls.starts_with("http") {
+            return Ok(hls.clone());
+        }
+
+        let url = format!("https://{hls}");
 
         Ok(url)
     }
