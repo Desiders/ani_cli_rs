@@ -157,7 +157,7 @@ impl Source for Anilibria<'_> {
     fn episodes_info(&mut self) -> Result<Self::EpisodesInfo, SourceError> {
         let anime = self.current_anime.as_ref().expect("No anime selected");
 
-        let episodes_info = format!("{episodes}", episodes = anime.player.series);
+        let episodes_info = format!("\n\t{episodes}\n", episodes = anime.player.series);
 
         Ok(episodes_info)
     }
@@ -202,7 +202,7 @@ impl Source for Anilibria<'_> {
     fn episode_info(&self) -> Result<Self::EpisodeIndo, SourceError> {
         let episode = self.current_episode.as_ref().expect("No episode selected");
 
-        let episode_info = format!("{episode}");
+        let episode_info = episode.to_string();
 
         Ok(episode_info)
     }

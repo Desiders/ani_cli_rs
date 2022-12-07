@@ -1,5 +1,6 @@
 use std::fmt::{self, Display};
 
+#[derive(Debug)]
 pub enum SourceError {
     ApiError(String),
     ParseError(String),

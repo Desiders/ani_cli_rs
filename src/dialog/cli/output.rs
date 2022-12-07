@@ -17,7 +17,6 @@ pub fn input_msg(msg: &str) {
     write!(stdout, "> ").unwrap();
     stdout.reset().unwrap();
     write!(stdout, "{msg}").unwrap();
-
     stdout.flush().unwrap();
 }
 
@@ -37,6 +36,7 @@ pub fn warning_msg(msg: &str) {
     write!(stdout, "\t<-> ").unwrap();
     stdout.reset().unwrap();
     write!(stdout, "{msg}").unwrap();
+    stdout.flush().unwrap();
 }
 
 pub fn error_msg(msg: &str) {
@@ -55,6 +55,7 @@ pub fn error_msg(msg: &str) {
     write!(stdout, "\t<-> ").unwrap();
     stdout.reset().unwrap();
     write!(stdout, "{msg}").unwrap();
+    stdout.flush().unwrap();
 }
 
 pub fn info_msg(msg: &str) {
@@ -97,6 +98,5 @@ pub fn variant_headline_msg(msg: &str) {
     write!(stdout, "> ").unwrap();
     stdout.reset().unwrap();
     write!(stdout, "{msg}").unwrap();
-
     stdout.flush().unwrap();
 }

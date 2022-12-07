@@ -44,6 +44,9 @@ where
 
                 match select_anime(source) {
                     ResultState::Success(_) => {
+                        let anime_info = source.anime_info().expect("Anime isn't set");
+                        output::info_msg(&format!("\tSelected anime `{anime_info}`\n"));
+
                         state_machine.set_state(State::SelectEpisode);
                     }
                     ResultState::Break => state_machine.set_previous_state(),
@@ -54,6 +57,9 @@ where
 
                 match select_episode(source) {
                     ResultState::Success(_) => {
+                        let episode_info = source.episode_info().expect("Episode isn't set");
+                        output::info_msg(&format!("\tSelected episode `{episode_info}`\n"));
+
                         state_machine.set_state(State::SelectQuality);
                     }
                     ResultState::Break => state_machine.set_previous_state(),
@@ -91,6 +97,7 @@ where
                 }
             }
         }
+        println!();
     }
 
     finish();
@@ -125,7 +132,7 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
     }
 
     loop {
-        return match prompt::read_line_or_none("\nSelect a language: ", None) {
+        return match prompt::read_line_or_none("Select a language: ", None) {
             Some(lang_or_seq_num) => match Language::try_from(lang_or_seq_num.as_str()) {
                 Ok(language) => ResultState::Success(language),
                 Err(err) => {
@@ -137,12 +144,12 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
                             ResultState::Success((*language).clone())
                         } else {
                             output::warning_msg(&format!(
-                                "Unknown language sequence number `{seq_num}`"
+                                "Unknown language sequence number `{seq_num}`\n"
                             ));
                             continue;
                         }
                     } else {
-                        output::warning_msg(&format!("{err}"));
+                        output::warning_msg(&format!("{err}\n"));
                         continue;
                     }
                 }
@@ -164,7 +171,7 @@ where
     }
 
     loop {
-        return match prompt::read_line_or_none("\nSelect a source: ", None) {
+        return match prompt::read_line_or_none("Select a source: ", None) {
             Some(source_name_or_seq_num) => {
                 if let Some(source) = sources
                     .iter()
@@ -178,11 +185,13 @@ where
                     {
                         ResultState::Success(source)
                     } else {
-                        output::warning_msg(&format!("Unknown source sequence number `{seq_num}`"));
+                        output::warning_msg(&format!(
+                            "Unknown source sequence number `{seq_num}`\n"
+                        ));
                         continue;
                     }
                 } else {
-                    output::warning_msg(&format!("Unknown source `{source_name_or_seq_num}`"));
+                    output::warning_msg(&format!("Unknown source `{source_name_or_seq_num}`\n"));
                     continue;
                 }
             }
@@ -212,10 +221,10 @@ where
         output::variant_headline_msg(&format!("Anime list:\n{anime_list_info}"));
 
         loop {
-            return match prompt::read_line_or_none("\nSelect anime: ", None) {
+            return match prompt::read_line_or_none("Select anime: ", None) {
                 Some(anime_name_or_seq_num) => {
                     if let Err(err) = source.select_anime_as_current(anime_name_or_seq_num) {
-                        output::warning_msg(&format!("{err}"));
+                        output::warning_msg(&format!("{err}\n"));
                         continue;
                     }
 
@@ -242,10 +251,10 @@ where
     output::variant_headline_msg(&format!("Episodes: {episode_list_info}"));
 
     loop {
-        return match prompt::read_line_or_none("\nSelect an episode: ", None) {
+        return match prompt::read_line_or_none("Select an episode: ", None) {
             Some(episode_name_or_seq_num) => {
                 if let Err(err) = source.select_episode_as_current(episode_name_or_seq_num) {
-                    output::warning_msg(&format!("{err}"));
+                    output::warning_msg(&format!("{err}\n"));
                     continue;
                 }
 
@@ -263,7 +272,7 @@ where
     let quality_list_info = match source.qualities_info() {
         Ok(quality_list_info) => quality_list_info,
         Err(err) => {
-            output::error_msg(&format!("\n{err}"));
+            output::error_msg(&format!("{err}"));
             return ResultState::Break;
         }
     };
@@ -271,10 +280,10 @@ where
     output::variant_headline_msg(&format!("Qualities:\n{quality_list_info}"));
 
     loop {
-        return match prompt::read_line_or_none("\nSelect a quality: ", None) {
+        return match prompt::read_line_or_none("Select a quality: ", None) {
             Some(quality_name_or_seq_num) => {
                 if let Err(err) = source.select_quality_as_current(quality_name_or_seq_num) {
-                    output::warning_msg(&format!("{err}"));
+                    output::warning_msg(&format!("{err}\n"));
                     continue;
                 }
 
@@ -294,7 +303,7 @@ fn select_player() -> ResultState<Player> {
     output::variant_headline_msg(&format!("Players:\n{players_info}"));
 
     loop {
-        let player_name = match prompt::read_line_or_none("\nSelect a player: ", None) {
+        let player_name = match prompt::read_line_or_none("Select a player: ", None) {
             Some(player_name) => player_name,
             None => return ResultState::Break,
         };
@@ -302,7 +311,7 @@ fn select_player() -> ResultState<Player> {
         let player = match Player::try_from(player_name) {
             Ok(player) => player,
             Err(err) => {
-                output::warning_msg(&format!("{err}"));
+                output::warning_msg(&format!("{err}\n"));
                 continue;
             }
         };
@@ -310,7 +319,7 @@ fn select_player() -> ResultState<Player> {
         if mpv::is_installed() {
             return ResultState::Success(player);
         }
-        output::error_msg(player.doc());
+        output::error_msg(&format!("{}\n", player.doc()));
     }
 }
 
@@ -326,7 +335,7 @@ where
         }
     };
 
-    output::info_msg("\nLaunch the process! Wait opening...\n");
+    output::info_msg("Launch the process! Wait opening...\n");
 
     match player {
         Player::Mpv => {
@@ -337,7 +346,7 @@ where
         }
     }
 
-    output::info_msg("\nProcess finished!\n");
+    output::info_msg("\nProcess finished!");
 
     ResultState::Success(())
 }
