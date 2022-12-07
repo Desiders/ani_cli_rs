@@ -32,13 +32,22 @@ where
                     ResultState::Break => break,
                 }
             }
-            State::SelectSource => match select_source(sources) {
-                ResultState::Success(source) => {
-                    state_machine.data().set_source(source.clone());
-                    state_machine.set_state(State::SelectAnime);
+            State::SelectSource => {
+                let language = state_machine.data().language();
+
+                match select_source(
+                    sources
+                        .iter()
+                        .filter(|source| source.language().eq(language))
+                        .collect(),
+                ) {
+                    ResultState::Success(source) => {
+                        state_machine.data().set_source(source.clone());
+                        state_machine.set_state(State::SelectAnime);
+                    }
+                    ResultState::Break => state_machine.set_previous_state(),
                 }
-                ResultState::Break => state_machine.set_previous_state(),
-            },
+            }
             State::SelectAnime => {
                 let source = state_machine.data().source_mut().unwrap();
 
@@ -160,7 +169,7 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
 }
 
 #[must_use]
-fn select_source<S>(sources: &[S]) -> ResultState<&S>
+fn select_source<S>(sources: Vec<&S>) -> ResultState<&S>
 where
     S: Source,
 {
