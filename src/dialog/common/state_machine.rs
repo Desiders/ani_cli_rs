@@ -29,7 +29,6 @@ where
         }
     }
 
-    /// Get current state
     #[must_use]
     pub fn current_state(&self) -> &State {
         &self.state
@@ -41,9 +40,24 @@ where
         self.state = Rc::new(state);
     }
 
-    /// Go to previous state
+    /// Set previous state and truncate states after this state
+    pub fn set_previous_state_and_truncate_next(&mut self, state: State) {
+        let mut seq_state_num = None;
+
+        for (seq_num, previous_state) in self.previous_states.iter().enumerate() {
+            if previous_state.as_ref() == &state {
+                seq_state_num = Some(seq_num);
+                break;
+            }
+        }
+
+        if let Some(seq_state_num) = seq_state_num {
+            self.previous_states.truncate(seq_state_num);
+            self.state = Rc::new(state);
+        }
+    }
+
     pub fn set_previous_state(&mut self) {
-        // Get last previous state
         if let Some(state) = self.previous_states.pop() {
             // Set previous state as current state
             self.state = state;

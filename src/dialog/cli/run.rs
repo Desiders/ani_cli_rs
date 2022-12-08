@@ -34,12 +34,11 @@ where
             }
             State::SelectSource => {
                 let language = state_machine.data().language();
-
                 match select_source(
-                    sources
+                    &sources
                         .iter()
                         .filter(|source| source.language().eq(language))
-                        .collect(),
+                        .collect::<Vec<&S>>(),
                 ) {
                     ResultState::Success(source) => {
                         state_machine.data().set_source(source.clone());
@@ -98,10 +97,21 @@ where
                 let source = data.source_mut().unwrap();
 
                 match launch_player(source, &player) {
-                    ResultState::Success(_) => {
-                        // TODO: Add dialog with use for next actions (next serie, change quality and etc.)
-                        todo!()
-                    }
+                    ResultState::Success(_) => match select_state() {
+                        ResultState::Success(State::SelectAnime) => {
+                            state_machine.set_previous_state_and_truncate_next(State::SelectAnime);
+                        }
+                        ResultState::Success(State::SelectEpisode) => {
+                            state_machine
+                                .set_previous_state_and_truncate_next(State::SelectEpisode);
+                        }
+                        ResultState::Success(State::SelectQuality) => {
+                            state_machine
+                                .set_previous_state_and_truncate_next(State::SelectQuality);
+                        }
+                        ResultState::Success(_) => unreachable!(),
+                        ResultState::Break => state_machine.set_previous_state(),
+                    },
                     ResultState::Break => state_machine.set_previous_state(),
                 }
             }
@@ -169,7 +179,7 @@ fn select_language(sources_languages: Vec<&Language>) -> ResultState<Language> {
 }
 
 #[must_use]
-fn select_source<S>(sources: Vec<&S>) -> ResultState<&S>
+fn select_source<'a, S>(sources: &[&'a S]) -> ResultState<&'a S>
 where
     S: Source,
 {
@@ -374,7 +384,51 @@ where
         }
     }
 
-    output::info_msg("\nProcess finished!");
+    output::info_msg("Process finished!\n\n");
 
     ResultState::Success(())
+}
+
+fn select_state() -> ResultState<State> {
+    let states = [
+        State::SelectAnime,
+        State::SelectEpisode,
+        State::SelectQuality,
+    ];
+
+    output::variant_headline_msg("What do you want to do next?");
+    output::info_msg(" (enter empty input to back previous state)\n");
+
+    for (seq_num, state) in states.iter().enumerate() {
+        output::variant_msg(&format!("\t{seq_num}. {state}\n", seq_num = seq_num + 1));
+    }
+
+    loop {
+        let state = match prompt::read_line_or_none("Select a state: ", None) {
+            Some(state_name_or_seq_num) => match State::try_from(state_name_or_seq_num.as_str()) {
+                Ok(state) => state,
+                Err(err) => {
+                    if let Ok(seq_num) = state_name_or_seq_num.parse::<usize>() {
+                        if let Some(state) = seq_num
+                            .checked_sub(1)
+                            .and_then(|seq_num| states.get(seq_num))
+                        {
+                            state.clone()
+                        } else {
+                            output::warning_msg(&format!(
+                                "Unknown state sequence number `{seq_num}`\n"
+                            ));
+                            continue;
+                        }
+                    } else {
+                        output::warning_msg(&format!("{err}\n"));
+                        continue;
+                    }
+                }
+            },
+            None => return ResultState::Break,
+        };
+
+        return ResultState::Success(state);
+    }
 }

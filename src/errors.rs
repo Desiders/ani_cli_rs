@@ -58,3 +58,15 @@ impl Display for PlayerError {
         }
     }
 }
+
+pub enum StateError {
+    UnknownState(String),
+}
+
+impl Display for StateError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnknownState(message) => write!(f, "{message}"),
+        }
+    }
+}
